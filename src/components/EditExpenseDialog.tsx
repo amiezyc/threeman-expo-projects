@@ -1,33 +1,34 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '@/context/AppContext';
 import { ExpenseMainCategory, ExpenseSubCategory, Expense, categoryStructure } from '@/types';
-import { Plus, Upload, X } from 'lucide-react';
+import { Trash2, Upload, X, Image } from 'lucide-react';
 
 const mainCategories = Object.keys(categoryStructure) as ExpenseMainCategory[];
 
-interface AddExpenseDialogProps {
-  projectId: string;
-  boothId?: string;
+interface EditExpenseDialogProps {
+  expense: Expense;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
-  const { user, addExpense, projects } = useApp();
-  const [open, setOpen] = useState(false);
-  const [mainCategory, setMainCategory] = useState<ExpenseMainCategory>('差旅');
-  const [subCategory, setSubCategory] = useState<ExpenseSubCategory>(categoryStructure['差旅'][0]);
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedBooth, setSelectedBooth] = useState(boothId || '');
-  const [receiptUrl, setReceiptUrl] = useState('');
-  const [receiptPreview, setReceiptPreview] = useState('');
+const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogProps) => {
+  const { updateExpense, deleteExpense, projects } = useApp();
+  const [mainCategory, setMainCategory] = useState<ExpenseMainCategory>(expense.mainCategory);
+  const [subCategory, setSubCategory] = useState<ExpenseSubCategory>(expense.subCategory);
+  const [amount, setAmount] = useState(expense.amount.toString());
+  const [description, setDescription] = useState(expense.description);
+  const [date, setDate] = useState(expense.date);
+  const [paidBy, setPaidBy] = useState(expense.paidBy);
+  const [selectedBooth, setSelectedBooth] = useState(expense.boothId || '');
+  const [receiptUrl, setReceiptUrl] = useState(expense.receiptUrl || '');
+  const [receiptPreview, setReceiptPreview] = useState(expense.receiptUrl || '');
 
-  const project = projects.find(p => p.id === projectId);
+  const project = projects.find(p => p.id === expense.projectId);
 
   const handleMainCategoryChange = (cat: ExpenseMainCategory) => {
     setMainCategory(cat);
@@ -47,39 +48,37 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
     reader.readAsDataURL(file);
   };
 
+  const handleRemoveReceipt = () => {
+    setReceiptUrl('');
+    setReceiptPreview('');
+  };
+
   const handleSubmit = () => {
     if (!amount || !description) return;
-    const expense: Expense = {
-      id: `exp-${Date.now()}`,
-      projectId,
-      boothId: mainCategory === '三方' ? selectedBooth : undefined,
-      paidBy: user.name,
+    updateExpense({
+      ...expense,
       mainCategory,
       subCategory,
       amount: parseFloat(amount),
       description,
       date,
+      paidBy,
+      boothId: mainCategory === '三方' ? selectedBooth : undefined,
       receiptUrl: receiptUrl || undefined,
-    };
-    addExpense(expense);
-    setOpen(false);
-    setAmount('');
-    setDescription('');
-    setReceiptUrl('');
-    setReceiptPreview('');
+    });
+    onOpenChange(false);
+  };
+
+  const handleDelete = () => {
+    deleteExpense(expense.projectId, expense.id);
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="gap-1.5">
-          <Plus className="h-4 w-4" />
-          添加开销
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>添加开销</DialogTitle>
+          <DialogTitle>编辑开销</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div className="grid grid-cols-2 gap-4">
@@ -87,6 +86,12 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
               <Label>日期</Label>
               <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
             </div>
+            <div className="space-y-2">
+              <Label>支付人</Label>
+              <Input value={paidBy} onChange={e => setPaidBy(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>大类</Label>
               <Select value={mainCategory} onValueChange={v => handleMainCategoryChange(v as ExpenseMainCategory)}>
@@ -96,8 +101,6 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>小类</Label>
               <Select value={subCategory} onValueChange={v => setSubCategory(v as ExpenseSubCategory)}>
@@ -107,27 +110,27 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
                 </SelectContent>
               </Select>
             </div>
-            {mainCategory === '三方' && project && (
-              <div className="space-y-2">
-                <Label>展位</Label>
-                <Select value={selectedBooth} onValueChange={setSelectedBooth}>
-                  <SelectTrigger><SelectValue placeholder="选择展位" /></SelectTrigger>
-                  <SelectContent>
-                    {project.booths.map(b => (
-                      <SelectItem key={b.id} value={b.id}>{b.clientName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
+          {mainCategory === '三方' && project && (
+            <div className="space-y-2">
+              <Label>展位</Label>
+              <Select value={selectedBooth} onValueChange={setSelectedBooth}>
+                <SelectTrigger><SelectValue placeholder="选择展位" /></SelectTrigger>
+                <SelectContent>
+                  {project.booths.map(b => (
+                    <SelectItem key={b.id} value={b.id}>{b.clientName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>金额 ($)</Label>
-            <Input type="number" step="0.01" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)} />
+            <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>说明</Label>
-            <Input placeholder="开销说明..." value={description} onChange={e => setDescription(e.target.value)} />
+            <Input value={description} onChange={e => setDescription(e.target.value)} />
           </div>
 
           {/* Receipt upload */}
@@ -137,7 +140,7 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
               <div className="relative rounded-lg overflow-hidden border border-border">
                 <img src={receiptPreview} alt="Receipt" className="w-full max-h-48 object-contain bg-muted" />
                 <button
-                  onClick={() => { setReceiptUrl(''); setReceiptPreview(''); }}
+                  onClick={handleRemoveReceipt}
                   className="absolute top-2 right-2 rounded-full bg-background/80 p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                 >
                   <X className="h-4 w-4" />
@@ -152,11 +155,17 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
             )}
           </div>
 
-          <Button className="w-full" onClick={handleSubmit}>提交</Button>
+          <div className="flex gap-2">
+            <Button variant="destructive" size="sm" onClick={handleDelete} className="gap-1">
+              <Trash2 className="h-4 w-4" />
+              删除
+            </Button>
+            <Button className="flex-1" onClick={handleSubmit}>保存</Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
   );
 };
 
-export default AddExpenseDialog;
+export default EditExpenseDialog;
