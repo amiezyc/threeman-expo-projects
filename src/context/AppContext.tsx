@@ -171,7 +171,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateEmployee = async (emp: User) => {
     const { error } = await supabase.from('employees').update({
-      name: emp.name, role: emp.role, daily_rate: emp.dailyRate,
+      name: emp.name, role: emp.role, daily_rate: emp.dailyRate, hourly_rate: emp.hourlyRate ?? null,
     }).eq('id', emp.id);
     if (error) { toast.error('保存失败'); return; }
     setEmployees(prev => prev.map(e => e.id === emp.id ? emp : e));
