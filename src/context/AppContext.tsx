@@ -114,6 +114,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             userName: w.user_name,
             date: w.date,
             dailyRate: Number(w.daily_rate),
+            rateType: (w.rate_type || 'daily') as 'daily' | 'hourly',
+            hours: w.hours ? Number(w.hours) : undefined,
           }));
 
         const partners: PartnerShare[] = partnerRows

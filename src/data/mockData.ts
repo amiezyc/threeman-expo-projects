@@ -66,11 +66,11 @@ export const mockProjects: Project[] = [
       { id: 'e19', projectId: 'proj-1', boothId: 'booth-2', paidBy: 'Ami', mainCategory: '三方', subCategory: '电费', amount: 164, description: 'Kewell电费', date: '2026-03-15' },
     ],
     workLogs: [
-      { id: 'wl-1', projectId: 'proj-1', userId: 'emp-2', userName: 'Hao', date: '2026-03-10', dailyRate: 250 },
-      { id: 'wl-2', projectId: 'proj-1', userId: 'emp-2', userName: 'Hao', date: '2026-03-11', dailyRate: 250 },
-      { id: 'wl-3', projectId: 'proj-1', userId: 'emp-2', userName: 'Hao', date: '2026-03-12', dailyRate: 250 },
-      { id: 'wl-4', projectId: 'proj-1', userId: 'emp-2', userName: 'Hao', date: '2026-03-13', dailyRate: 250 },
-      { id: 'wl-5', projectId: 'proj-1', userId: 'emp-2', userName: 'Hao', date: '2026-03-14', dailyRate: 250 },
+      { id: 'wl-1', projectId: 'proj-1', userId: 'emp-2', userName: 'Hao', date: '2026-03-10', dailyRate: 250, rateType: 'daily' as const },
+      { id: 'wl-2', projectId: 'proj-1', userId: 'emp-2', userName: 'Hao', date: '2026-03-11', dailyRate: 250, rateType: 'daily' as const },
+      { id: 'wl-3', projectId: 'proj-1', userId: 'emp-2', userName: 'Hao', date: '2026-03-12', dailyRate: 250, rateType: 'daily' as const },
+      { id: 'wl-4', projectId: 'proj-1', userId: 'emp-2', userName: 'Hao', date: '2026-03-13', dailyRate: 250, rateType: 'daily' as const },
+      { id: 'wl-5', projectId: 'proj-1', userId: 'emp-2', userName: 'Hao', date: '2026-03-14', dailyRate: 250, rateType: 'daily' as const },
     ],
   },
   {

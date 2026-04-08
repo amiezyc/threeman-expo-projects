@@ -33,6 +33,7 @@ const WorkLogPage = () => {
       userName: user.name,
       date,
       dailyRate: user.dailyRate || 250,
+      rateType: 'daily',
     });
   };
 
