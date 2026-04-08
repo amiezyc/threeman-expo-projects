@@ -1,10 +1,13 @@
 export type UserRole = 'boss' | 'employee';
 
+export type RateType = 'daily' | 'hourly';
+
 export interface User {
   id: string;
   name: string;
   role: UserRole;
   dailyRate?: number;
+  hourlyRate?: number;
 }
 
 export type ExpenseMainCategory = '差旅' | '物料' | '人工' | '三方' | '其他';
@@ -45,6 +48,8 @@ export interface WorkLog {
   userName: string;
   date: string;
   dailyRate: number;
+  rateType: RateType;
+  hours?: number;
 }
 
 export type PaymentStatus = 'pending' | 'invoiced' | 'received';

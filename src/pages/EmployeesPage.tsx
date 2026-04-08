@@ -7,10 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
-import { Users, Plus, Pencil, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
+import { Users, Plus, Pencil, Calendar as CalendarIcon, Trash2, Clock } from 'lucide-react';
 import StatCard from '@/components/StatCard';
 import EmployeeDialog from '@/components/EmployeeDialog';
-import { User, WorkLog } from '@/types';
+import { User, WorkLog, RateType } from '@/types';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 
@@ -25,17 +25,22 @@ const EmployeesPage = () => {
   const [logDate, setLogDate] = useState('');
   const [logRate, setLogRate] = useState('');
   const [logProject, setLogProject] = useState('');
+  const [logRateType, setLogRateType] = useState<RateType>('daily');
+  const [logHours, setLogHours] = useState('');
 
   // Multi-date add
   const [addingLog, setAddingLog] = useState(false);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [newLogProject, setNewLogProject] = useState(projects[0]?.id || '');
+  const [newLogRateType, setNewLogRateType] = useState<RateType>('daily');
+  const [newLogRate, setNewLogRate] = useState('');
+  const [newLogHours, setNewLogHours] = useState('');
 
   const employeeStats = employees.map(emp => {
     const workLogs = projects.flatMap(p => p.workLogs).filter(w => w.userId === emp.id);
     const expenses = projects.flatMap(p => p.expenses).filter(e => e.paidBy === emp.name);
     const totalDays = workLogs.length;
-    const totalPay = workLogs.reduce((s, w) => s + w.dailyRate, 0);
+    const totalPay = workLogs.reduce((s, w) => s + (w.rateType === 'hourly' ? w.dailyRate * (w.hours || 0) : w.dailyRate), 0);
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
     return { ...emp, totalDays, totalPay, totalExpenses, workLogs };
   });
@@ -73,11 +78,20 @@ const EmployeesPage = () => {
     setLogDate(log.date);
     setLogRate(String(log.dailyRate));
     setLogProject(log.projectId);
+    setLogRateType(log.rateType || 'daily');
+    setLogHours(log.hours ? String(log.hours) : '');
   };
 
   const saveEditLog = () => {
     if (!editingLog) return;
-    updateWorkLog({ ...editingLog, date: logDate, dailyRate: Number(logRate), projectId: logProject });
+    updateWorkLog({
+      ...editingLog,
+      date: logDate,
+      dailyRate: Number(logRate),
+      projectId: logProject,
+      rateType: logRateType,
+      hours: logRateType === 'hourly' ? Number(logHours) || 0 : undefined,
+    });
     setEditingLog(null);
     toast.success('工时已更新');
   };
@@ -89,6 +103,8 @@ const EmployeesPage = () => {
 
   const handleAddLogs = () => {
     if (!workLogEmployee || !newLogProject || selectedDates.length === 0) return;
+    const rate = Number(newLogRate) || (newLogRateType === 'hourly' ? (workLogEmployee.hourlyRate || 25) : (workLogEmployee.dailyRate || 250));
+    const hours = newLogRateType === 'hourly' ? (Number(newLogHours) || 0) : undefined;
     selectedDates.forEach(date => {
       addWorkLog({
         id: `wl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -96,11 +112,15 @@ const EmployeesPage = () => {
         userId: workLogEmployee.id,
         userName: workLogEmployee.name,
         date: format(date, 'yyyy-MM-dd'),
-        dailyRate: workLogEmployee.dailyRate || 250,
+        dailyRate: rate,
+        rateType: newLogRateType,
+        hours,
       });
     });
     setAddingLog(false);
     setSelectedDates([]);
+    setNewLogRate('');
+    setNewLogHours('');
     toast.success(`已添加 ${selectedDates.length} 天工时`);
   };
 
@@ -188,7 +208,7 @@ const EmployeesPage = () => {
                 <div key={log.id} className="rounded-md border border-border/50 bg-muted/30 px-4 py-3">
                   {editingLog?.id === log.id ? (
                     <div className="space-y-3">
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <Label className="text-xs">项目</Label>
                           <Select value={logProject} onValueChange={setLogProject}>
@@ -202,10 +222,28 @@ const EmployeesPage = () => {
                           <Label className="text-xs">日期</Label>
                           <Input className="h-8 text-xs" type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
                         </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
                         <div className="space-y-1">
-                          <Label className="text-xs">日薪</Label>
+                          <Label className="text-xs">计费方式</Label>
+                          <Select value={logRateType} onValueChange={(v) => setLogRateType(v as RateType)}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="daily">日薪</SelectItem>
+                              <SelectItem value="hourly">时薪</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{logRateType === 'hourly' ? '时薪' : '日薪'}</Label>
                           <Input className="h-8 text-xs" type="number" value={logRate} onChange={e => setLogRate(e.target.value)} />
                         </div>
+                        {logRateType === 'hourly' && (
+                          <div className="space-y-1">
+                            <Label className="text-xs">小时数</Label>
+                            <Input className="h-8 text-xs" type="number" value={logHours} onChange={e => setLogHours(e.target.value)} step="0.5" />
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2 justify-end">
                         <Button size="sm" variant="outline" onClick={() => setEditingLog(null)}>取消</Button>
@@ -220,7 +258,12 @@ const EmployeesPage = () => {
                         <span className="text-xs text-muted-foreground">{projects.find(p => p.id === log.projectId)?.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">${log.dailyRate}</span>
+                        <span className="text-sm font-semibold">
+                          {log.rateType === 'hourly' 
+                            ? `$${log.dailyRate}/hr × ${log.hours || 0}h = $${(log.dailyRate * (log.hours || 0)).toFixed(2)}`
+                            : `$${log.dailyRate}/天`
+                          }
+                        </span>
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEditLog(log)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
@@ -236,14 +279,43 @@ const EmployeesPage = () => {
 
             {addingLog ? (
               <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 space-y-3">
-                <div className="space-y-2">
-                  <Label className="text-xs">项目</Label>
-                  <Select value={newLogProject} onValueChange={setNewLogProject}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">项目</Label>
+                    <Select value={newLogProject} onValueChange={setNewLogProject}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">计费方式</Label>
+                    <Select value={newLogRateType} onValueChange={(v) => setNewLogRateType(v as RateType)}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">日薪</SelectItem>
+                        <SelectItem value="hourly">时薪</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">{newLogRateType === 'hourly' ? '时薪 ($/hr)' : '日薪 ($/天)'}</Label>
+                    <Input
+                      className="h-8 text-xs" type="number"
+                      value={newLogRate}
+                      onChange={e => setNewLogRate(e.target.value)}
+                      placeholder={String(newLogRateType === 'hourly' ? (workLogEmployee?.hourlyRate || 25) : (workLogEmployee?.dailyRate || 250))}
+                    />
+                  </div>
+                  {newLogRateType === 'hourly' && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">小时数</Label>
+                      <Input className="h-8 text-xs" type="number" value={newLogHours} onChange={e => setNewLogHours(e.target.value)} step="0.5" placeholder="8" />
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">选择工作日期（可多选）</Label>
@@ -258,7 +330,7 @@ const EmployeesPage = () => {
                   )}
                 </div>
                 <div className="flex gap-2 justify-end">
-                  <Button size="sm" variant="outline" onClick={() => { setAddingLog(false); setSelectedDates([]); }}>取消</Button>
+                  <Button size="sm" variant="outline" onClick={() => { setAddingLog(false); setSelectedDates([]); setNewLogRate(''); setNewLogHours(''); }}>取消</Button>
                   <Button size="sm" onClick={handleAddLogs} disabled={selectedDates.length === 0}>
                     添加 {selectedDates.length > 0 ? `${selectedDates.length}天` : ''}
                   </Button>

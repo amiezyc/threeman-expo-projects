@@ -114,6 +114,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             userName: w.user_name,
             date: w.date,
             dailyRate: Number(w.daily_rate),
+            rateType: (w.rate_type || 'daily') as 'daily' | 'hourly',
+            hours: w.hours ? Number(w.hours) : undefined,
           }));
 
         const partners: PartnerShare[] = partnerRows
@@ -139,6 +141,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         name: e.name,
         role: e.role as UserRole,
         dailyRate: e.daily_rate ? Number(e.daily_rate) : undefined,
+        hourlyRate: e.hourly_rate ? Number(e.hourly_rate) : undefined,
       })));
     } catch (err) {
       console.error('Failed to load data:', err);
@@ -160,15 +163,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // === Employees ===
   const addEmployee = async (emp: User) => {
     const { data, error } = await supabase.from('employees').insert({
-      name: emp.name, role: emp.role, daily_rate: emp.dailyRate ?? 250,
+      name: emp.name, role: emp.role, daily_rate: emp.dailyRate ?? 250, hourly_rate: emp.hourlyRate ?? null,
     }).select().single();
     if (error) { toast.error('保存失败'); return; }
-    setEmployees(prev => [...prev, { id: data.id, name: data.name, role: data.role as UserRole, dailyRate: Number(data.daily_rate) }]);
+    setEmployees(prev => [...prev, { id: data.id, name: data.name, role: data.role as UserRole, dailyRate: Number(data.daily_rate), hourlyRate: data.hourly_rate ? Number(data.hourly_rate) : undefined }]);
   };
 
   const updateEmployee = async (emp: User) => {
     const { error } = await supabase.from('employees').update({
-      name: emp.name, role: emp.role, daily_rate: emp.dailyRate,
+      name: emp.name, role: emp.role, daily_rate: emp.dailyRate, hourly_rate: emp.hourlyRate ?? null,
     }).eq('id', emp.id);
     if (error) { toast.error('保存失败'); return; }
     setEmployees(prev => prev.map(e => e.id === emp.id ? emp : e));
@@ -294,7 +297,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const byEmployee = new Map<string, { userName: string; total: number }>();
     project.workLogs.forEach(w => {
       const existing = byEmployee.get(w.userId) || { userName: w.userName, total: 0 };
-      existing.total += w.dailyRate;
+      const pay = w.rateType === 'hourly' ? w.dailyRate * (w.hours || 0) : w.dailyRate;
+      existing.total += pay;
       byEmployee.set(w.userId, existing);
     });
 
@@ -352,6 +356,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       user_name: workLog.userName,
       date: workLog.date,
       daily_rate: workLog.dailyRate,
+      rate_type: workLog.rateType || 'daily',
+      hours: workLog.hours || null,
     }).select().single();
     if (error) { toast.error('保存失败'); return; }
     const newLog = { ...workLog, id: data.id };
@@ -368,6 +374,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       booth_id: workLog.boothId || null,
       date: workLog.date,
       daily_rate: workLog.dailyRate,
+      rate_type: workLog.rateType || 'daily',
+      hours: workLog.hours || null,
     }).eq('id', workLog.id);
     const updated = projects.map(p =>
       p.id === workLog.projectId ? { ...p, workLogs: p.workLogs.map(w => w.id === workLog.id ? workLog : w) } : p
