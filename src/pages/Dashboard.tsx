@@ -3,6 +3,7 @@ import StatCard from '@/components/StatCard';
 import PaymentTracker from '@/components/PaymentTracker';
 import ExpenseBreakdown from '@/components/ExpenseBreakdown';
 import AddExpenseDialog from '@/components/AddExpenseDialog';
+import ProfitSharing from '@/components/ProfitSharing';
 import { DollarSign, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 
 const Dashboard = () => {
@@ -22,7 +23,6 @@ const Dashboard = () => {
         const totalPending = project.booths.flatMap(b => b.payments).filter(p => p.status !== 'received').reduce((s, p) => s + p.amount, 0);
         const profit = totalContract - totalExpenses;
 
-        // Split expenses: booth-specific (三方) vs project-level
         const boothExpenses = (boothId: string) => project.expenses.filter(e => e.boothId === boothId);
         const projectLevelExpenses = project.expenses.filter(e => !e.boothId);
 
@@ -36,6 +36,11 @@ const Dashboard = () => {
               <StatCard title="预计利润" value={`$${profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} subtitle={`利润率 ${((profit / totalContract) * 100).toFixed(1)}%`} icon={TrendingUp} variant={profit > 0 ? 'success' : 'destructive'} />
               <StatCard title="待收款" value={`$${totalPending.toLocaleString()}`} subtitle={`已收 $${totalReceived.toLocaleString()}`} icon={Clock} variant="warning" />
             </div>
+
+            {/* Partner profit sharing */}
+            {project.partners && project.partners.length > 0 && (
+              <ProfitSharing partners={project.partners} totalProfit={profit} />
+            )}
 
             {/* Payment tracking */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

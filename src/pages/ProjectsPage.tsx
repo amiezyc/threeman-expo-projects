@@ -1,6 +1,7 @@
 import { useApp } from '@/context/AppContext';
 import ExpenseBreakdown from '@/components/ExpenseBreakdown';
 import AddExpenseDialog from '@/components/AddExpenseDialog';
+import ProfitSharing from '@/components/ProfitSharing';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatCard from '@/components/StatCard';
 import { DollarSign, TrendingDown, Users } from 'lucide-react';
@@ -16,7 +17,9 @@ const ProjectsPage = () => {
       </div>
 
       {projects.map(project => {
+        const totalContract = project.booths.reduce((s, b) => s + b.totalContract, 0);
         const totalExpenses = project.expenses.reduce((s, e) => s + e.amount, 0);
+        const profit = totalContract - totalExpenses;
 
         return (
           <div key={project.id} className="space-y-4">
@@ -32,10 +35,15 @@ const ProjectsPage = () => {
 
               <TabsContent value="all" className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <StatCard title="合同总额" value={`$${project.booths.reduce((s, b) => s + b.totalContract, 0).toLocaleString()}`} icon={DollarSign} />
+                  <StatCard title="合同总额" value={`$${totalContract.toLocaleString()}`} icon={DollarSign} />
                   <StatCard title="总支出" value={`$${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={TrendingDown} variant="warning" />
-                  <StatCard title="利润" value={`$${(project.booths.reduce((s, b) => s + b.totalContract, 0) - totalExpenses).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={DollarSign} variant="success" />
+                  <StatCard title="利润" value={`$${profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={DollarSign} variant={profit > 0 ? 'success' : 'destructive'} />
                 </div>
+
+                {project.partners && project.partners.length > 0 && (
+                  <ProfitSharing partners={project.partners} totalProfit={profit} />
+                )}
+
                 <div className="glass-card rounded-lg p-5">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-semibold">全部开销</h4>
@@ -48,17 +56,14 @@ const ProjectsPage = () => {
               {project.booths.map(booth => {
                 const boothThirdParty = project.expenses.filter(e => e.boothId === booth.id);
                 const boothTotal = boothThirdParty.reduce((s, e) => s + e.amount, 0);
-                const profit = booth.totalContract - boothTotal;
-
-                // Work logs for this booth
-                const boothWorkLogs = project.workLogs.filter(w => w.boothId === booth.id);
+                const boothProfit = booth.totalContract - boothTotal;
 
                 return (
                   <TabsContent key={booth.id} value={booth.id} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <StatCard title="合同金额" value={`$${booth.totalContract.toLocaleString()}`} icon={DollarSign} />
                       <StatCard title="三方费用" value={`$${boothTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={TrendingDown} variant="warning" />
-                      <StatCard title="展位利润" value={`$${profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={DollarSign} variant={profit > 0 ? 'success' : 'destructive'} />
+                      <StatCard title="展位利润" value={`$${boothProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={DollarSign} variant={boothProfit > 0 ? 'success' : 'destructive'} />
                     </div>
                     <div className="glass-card rounded-lg p-5">
                       <div className="flex items-center justify-between mb-3">
