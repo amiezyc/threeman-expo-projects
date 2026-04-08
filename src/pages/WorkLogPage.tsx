@@ -4,18 +4,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import StatCard from '@/components/StatCard';
-import { Calendar, DollarSign } from 'lucide-react';
+import { Calendar, DollarSign, Pencil, Trash2 } from 'lucide-react';
+import { WorkLog } from '@/types';
 
 const WorkLogPage = () => {
-  const { user, projects, addWorkLog } = useApp();
-  const allBooths = projects.flatMap(p => p.booths);
+  const { user, projects, addWorkLog, updateWorkLog, deleteWorkLog } = useApp();
   const myLogs = projects.flatMap(p => p.workLogs).filter(w => w.userId === user.id);
   const totalDays = myLogs.length;
   const totalPay = myLogs.reduce((s, w) => s + w.dailyRate, 0);
 
   const [selectedProject, setSelectedProject] = useState(projects[0]?.id || '');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Edit dialog state
+  const [editLog, setEditLog] = useState<WorkLog | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editRate, setEditRate] = useState('');
+  const [editProject, setEditProject] = useState('');
 
   const handleAddLog = () => {
     if (!selectedProject || !date) return;
@@ -27,6 +34,30 @@ const WorkLogPage = () => {
       date,
       dailyRate: user.dailyRate || 250,
     });
+  };
+
+  const openEdit = (log: WorkLog) => {
+    setEditLog(log);
+    setEditDate(log.date);
+    setEditRate(String(log.dailyRate));
+    setEditProject(log.projectId);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editLog) return;
+    updateWorkLog({
+      ...editLog,
+      date: editDate,
+      dailyRate: Number(editRate),
+      projectId: editProject,
+    });
+    setEditLog(null);
+  };
+
+  const handleDeleteLog = () => {
+    if (!editLog) return;
+    deleteWorkLog(editLog.projectId, editLog.id);
+    setEditLog(null);
   };
 
   return (
@@ -72,7 +103,7 @@ const WorkLogPage = () => {
             <p className="text-center text-muted-foreground py-4 text-sm">暂无工时记录</p>
           ) : (
             myLogs.map(log => (
-              <div key={log.id} className="flex items-center justify-between rounded-md border border-border/50 bg-muted/30 px-4 py-3">
+              <div key={log.id} className="flex items-center justify-between rounded-md border border-border/50 bg-muted/30 px-4 py-3 group">
                 <div className="flex items-center gap-3">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">{log.date}</span>
@@ -80,12 +111,54 @@ const WorkLogPage = () => {
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-muted-foreground">{projects.find(p => p.id === log.projectId)?.name}</span>
                   <span className="font-bold">${log.dailyRate}</span>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => openEdit(log)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </div>
             ))
           )}
         </div>
       </div>
+
+      {/* Edit Work Log Dialog */}
+      <Dialog open={!!editLog} onOpenChange={open => !open && setEditLog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>编辑工时</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>项目</Label>
+              <Select value={editProject} onValueChange={setEditProject}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {projects.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>日期</Label>
+              <Input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>日薪 ($)</Label>
+              <Input type="number" value={editRate} onChange={e => setEditRate(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter className="flex-row justify-between sm:justify-between">
+            <Button variant="destructive" onClick={handleDeleteLog} className="gap-1">
+              <Trash2 className="h-4 w-4" /> 删除
+            </Button>
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" onClick={() => setEditLog(null)}>取消</Button>
+              <Button onClick={handleSaveEdit}>保存</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
