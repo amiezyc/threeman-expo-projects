@@ -302,48 +302,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       byEmployee.set(w.userId, existing);
     });
 
-    // Get existing auto-generated labor expenses (sub_category starts with "auto:")
+    // Get existing auto-generated labor expenses for this project
     const existingLaborExpenses = project.expenses.filter(
       e => e.mainCategory === '人工' && e.subCategory.startsWith('auto:')
     );
 
-    const newExpenses = [...project.expenses.filter(e => !(e.mainCategory === '人工' && e.subCategory.startsWith('auto:')))];
+    let updatedExpenses = [...project.expenses];
 
-    // Delete old auto labor expenses from DB
-    const oldIds = existingLaborExpenses.map(e => e.id);
-    if (oldIds.length > 0) {
-      await supabase.from('expenses').delete().in('id', oldIds);
-    }
-
-    // Insert new auto labor expenses
     for (const [userId, info] of byEmployee) {
-      if (info.total <= 0) continue;
-      const { data, error } = await supabase.from('expenses').insert({
-        project_id: projectId,
-        booth_id: null,
-        paid_by: 'Ami',
-        main_category: '人工',
-        sub_category: `auto:${userId}`,
-        amount: info.total,
-        description: `${info.userName} 人工费`,
-        date: new Date().toISOString().split('T')[0],
-      }).select().single();
-      if (!error && data) {
-        newExpenses.push({
-          id: data.id,
-          projectId,
-          paidBy: 'Ami',
-          mainCategory: '人工' as any,
-          subCategory: `auto:${userId}` as any,
+      const subCat = `auto:${userId}`;
+      const existing = existingLaborExpenses.find(e => e.subCategory === subCat);
+
+      if (info.total <= 0) {
+        // Remove if total is 0
+        if (existing) {
+          await supabase.from('expenses').delete().eq('id', existing.id);
+          updatedExpenses = updatedExpenses.filter(e => e.id !== existing.id);
+        }
+        continue;
+      }
+
+      if (existing) {
+        // Only update if amount changed
+        if (existing.amount !== info.total) {
+          await supabase.from('expenses').update({ amount: info.total }).eq('id', existing.id);
+          updatedExpenses = updatedExpenses.map(e =>
+            e.id === existing.id ? { ...e, amount: info.total } : e
+          );
+        }
+      } else {
+        // Insert new
+        const { data, error } = await supabase.from('expenses').insert({
+          project_id: projectId,
+          booth_id: null,
+          paid_by: 'Ami',
+          main_category: '人工',
+          sub_category: subCat,
           amount: info.total,
           description: `${info.userName} 人工费`,
           date: new Date().toISOString().split('T')[0],
-        });
+        }).select().single();
+        if (!error && data) {
+          updatedExpenses.push({
+            id: data.id,
+            projectId,
+            paidBy: 'Ami',
+            mainCategory: '人工' as any,
+            subCategory: subCat as any,
+            amount: info.total,
+            description: `${info.userName} 人工费`,
+            date: new Date().toISOString().split('T')[0],
+          });
+        }
+      }
+    }
+
+    // Remove auto expenses for employees no longer in work logs
+    for (const exp of existingLaborExpenses) {
+      const userId = exp.subCategory.replace('auto:', '');
+      if (!byEmployee.has(userId)) {
+        await supabase.from('expenses').delete().eq('id', exp.id);
+        updatedExpenses = updatedExpenses.filter(e => e.id !== exp.id);
       }
     }
 
     setProjects(prev => prev.map(p =>
-      p.id === projectId ? { ...p, expenses: newExpenses } : p
+      p.id === projectId ? { ...p, expenses: updatedExpenses } : p
     ));
   };
 
