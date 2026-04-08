@@ -163,10 +163,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // === Employees ===
   const addEmployee = async (emp: User) => {
     const { data, error } = await supabase.from('employees').insert({
-      name: emp.name, role: emp.role, daily_rate: emp.dailyRate ?? 250,
+      name: emp.name, role: emp.role, daily_rate: emp.dailyRate ?? 250, hourly_rate: emp.hourlyRate ?? null,
     }).select().single();
     if (error) { toast.error('保存失败'); return; }
-    setEmployees(prev => [...prev, { id: data.id, name: data.name, role: data.role as UserRole, dailyRate: Number(data.daily_rate) }]);
+    setEmployees(prev => [...prev, { id: data.id, name: data.name, role: data.role as UserRole, dailyRate: Number(data.daily_rate), hourlyRate: data.hourly_rate ? Number(data.hourly_rate) : undefined }]);
   };
 
   const updateEmployee = async (emp: User) => {
