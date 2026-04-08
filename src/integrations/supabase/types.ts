@@ -47,6 +47,7 @@ export type Database = {
         Row: {
           created_at: string
           daily_rate: number | null
+          hourly_rate: number | null
           id: string
           name: string
           role: string
@@ -54,6 +55,7 @@ export type Database = {
         Insert: {
           created_at?: string
           daily_rate?: number | null
+          hourly_rate?: number | null
           id?: string
           name: string
           role?: string
@@ -61,6 +63,7 @@ export type Database = {
         Update: {
           created_at?: string
           daily_rate?: number | null
+          hourly_rate?: number | null
           id?: string
           name?: string
           role?: string
@@ -220,8 +223,10 @@ export type Database = {
           booth_id: string | null
           daily_rate: number
           date: string
+          hours: number | null
           id: string
           project_id: string
+          rate_type: string
           user_id: string
           user_name: string
         }
@@ -229,8 +234,10 @@ export type Database = {
           booth_id?: string | null
           daily_rate?: number
           date: string
+          hours?: number | null
           id?: string
           project_id: string
+          rate_type?: string
           user_id: string
           user_name: string
         }
@@ -238,8 +245,10 @@ export type Database = {
           booth_id?: string | null
           daily_rate?: number
           date?: string
+          hours?: number | null
           id?: string
           project_id?: string
+          rate_type?: string
           user_id?: string
           user_name?: string
         }
