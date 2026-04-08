@@ -208,7 +208,7 @@ const EmployeesPage = () => {
                 <div key={log.id} className="rounded-md border border-border/50 bg-muted/30 px-4 py-3">
                   {editingLog?.id === log.id ? (
                     <div className="space-y-3">
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <Label className="text-xs">项目</Label>
                           <Select value={logProject} onValueChange={setLogProject}>
@@ -222,10 +222,28 @@ const EmployeesPage = () => {
                           <Label className="text-xs">日期</Label>
                           <Input className="h-8 text-xs" type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
                         </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
                         <div className="space-y-1">
-                          <Label className="text-xs">日薪</Label>
+                          <Label className="text-xs">计费方式</Label>
+                          <Select value={logRateType} onValueChange={(v) => setLogRateType(v as RateType)}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="daily">日薪</SelectItem>
+                              <SelectItem value="hourly">时薪</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">{logRateType === 'hourly' ? '时薪' : '日薪'}</Label>
                           <Input className="h-8 text-xs" type="number" value={logRate} onChange={e => setLogRate(e.target.value)} />
                         </div>
+                        {logRateType === 'hourly' && (
+                          <div className="space-y-1">
+                            <Label className="text-xs">小时数</Label>
+                            <Input className="h-8 text-xs" type="number" value={logHours} onChange={e => setLogHours(e.target.value)} step="0.5" />
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2 justify-end">
                         <Button size="sm" variant="outline" onClick={() => setEditingLog(null)}>取消</Button>
