@@ -75,6 +75,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             projectId: b.project_id,
             clientName: b.client_name,
             totalContract: Number(b.total_contract),
+            contractUrl: b.contract_url || undefined,
             payments: paymentRows
               .filter((pay: any) => pay.booth_id === b.id)
               .map((pay: any) => ({
@@ -86,6 +87,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 invoiceDate: pay.invoice_date || undefined,
                 receivedDate: pay.received_date || undefined,
                 notes: pay.notes || undefined,
+                documentUrl: pay.document_url || undefined,
               })),
           }));
 
