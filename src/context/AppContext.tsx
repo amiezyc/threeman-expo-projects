@@ -374,6 +374,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       booth_id: workLog.boothId || null,
       date: workLog.date,
       daily_rate: workLog.dailyRate,
+      rate_type: workLog.rateType || 'daily',
+      hours: workLog.hours || null,
     }).eq('id', workLog.id);
     const updated = projects.map(p =>
       p.id === workLog.projectId ? { ...p, workLogs: p.workLogs.map(w => w.id === workLog.id ? workLog : w) } : p
