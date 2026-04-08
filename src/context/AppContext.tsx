@@ -219,7 +219,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateBooth = async (projectId: string, booth: Booth) => {
     await supabase.from('booths').update({
-      client_name: booth.clientName, total_contract: booth.totalContract,
+      client_name: booth.clientName, total_contract: booth.totalContract, contract_url: booth.contractUrl || null,
     }).eq('id', booth.id);
     setProjects(prev => prev.map(p =>
       p.id === projectId ? { ...p, booths: p.booths.map(b => b.id === booth.id ? booth : b) } : p
