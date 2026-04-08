@@ -356,6 +356,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       user_name: workLog.userName,
       date: workLog.date,
       daily_rate: workLog.dailyRate,
+      rate_type: workLog.rateType || 'daily',
+      hours: workLog.hours || null,
     }).select().single();
     if (error) { toast.error('保存失败'); return; }
     const newLog = { ...workLog, id: data.id };
