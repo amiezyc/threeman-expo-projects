@@ -141,6 +141,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         name: e.name,
         role: e.role as UserRole,
         dailyRate: e.daily_rate ? Number(e.daily_rate) : undefined,
+        hourlyRate: e.hourly_rate ? Number(e.hourly_rate) : undefined,
       })));
     } catch (err) {
       console.error('Failed to load data:', err);
