@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { Project, User, Expense, WorkLog, UserRole } from '@/types';
-import { mockProjects, currentUser, employees } from '@/data/mockData';
+import { mockProjects, currentUser, employees as initialEmployees } from '@/data/mockData';
 
 interface AppContextType {
   user: User;
@@ -11,6 +11,9 @@ interface AppContextType {
   deleteExpense: (projectId: string, expenseId: string) => void;
   addWorkLog: (workLog: WorkLog) => void;
   employees: User[];
+  addEmployee: (employee: User) => void;
+  updateEmployee: (employee: User) => void;
+  deleteEmployee: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -24,14 +27,19 @@ export const useApp = () => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User>(currentUser);
   const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const [employeeList, setEmployeeList] = useState<User[]>(initialEmployees);
 
   const setUserRole = (role: UserRole) => {
     if (role === 'boss') {
       setUser(currentUser);
     } else {
-      setUser({ ...employees[0], role: 'employee' });
+      setUser({ ...employeeList[0], role: 'employee' });
     }
   };
+
+  const addEmployee = (emp: User) => setEmployeeList(prev => [...prev, emp]);
+  const updateEmployee = (emp: User) => setEmployeeList(prev => prev.map(e => e.id === emp.id ? emp : e));
+  const deleteEmployee = (id: string) => setEmployeeList(prev => prev.filter(e => e.id !== id));
 
   const addExpense = (expense: Expense) => {
     setProjects(prev => prev.map(p =>
@@ -66,7 +74,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ user, setUserRole, projects, addExpense, updateExpense, deleteExpense, addWorkLog, employees }}>
+    <AppContext.Provider value={{ user, setUserRole, projects, addExpense, updateExpense, deleteExpense, addWorkLog, employees: employeeList, addEmployee, updateEmployee, deleteEmployee }}>
       {children}
     </AppContext.Provider>
   );
