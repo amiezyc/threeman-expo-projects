@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { Project, User, Expense, WorkLog, UserRole } from '@/types';
+import { Project, User, Expense, WorkLog, UserRole, Booth, PartnerShare } from '@/types';
 import { mockProjects, currentUser, employees as initialEmployees } from '@/data/mockData';
 
 interface AppContextType {
@@ -16,6 +16,13 @@ interface AppContextType {
   addEmployee: (employee: User) => void;
   updateEmployee: (employee: User) => void;
   deleteEmployee: (id: string) => void;
+  addProject: (project: Project) => void;
+  updateProject: (project: Project) => void;
+  deleteProject: (id: string) => void;
+  addBooth: (projectId: string, booth: Booth) => void;
+  updateBooth: (projectId: string, booth: Booth) => void;
+  deleteBooth: (projectId: string, boothId: string) => void;
+  updatePartners: (projectId: string, partners: PartnerShare[]) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -91,8 +98,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ));
   };
 
+  const addProject = (project: Project) => setProjects(prev => [...prev, project]);
+  const updateProject = (project: Project) => setProjects(prev => prev.map(p => p.id === project.id ? project : p));
+  const deleteProject = (id: string) => setProjects(prev => prev.filter(p => p.id !== id));
+
+  const addBooth = (projectId: string, booth: Booth) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId ? { ...p, booths: [...p.booths, booth] } : p
+    ));
+  };
+
+  const updateBooth = (projectId: string, booth: Booth) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId ? { ...p, booths: p.booths.map(b => b.id === booth.id ? booth : b) } : p
+    ));
+  };
+
+  const deleteBooth = (projectId: string, boothId: string) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId ? { ...p, booths: p.booths.filter(b => b.id !== boothId) } : p
+    ));
+  };
+
+  const updatePartners = (projectId: string, partners: PartnerShare[]) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId ? { ...p, partners } : p
+    ));
+  };
+
   return (
-    <AppContext.Provider value={{ user, setUserRole, projects, addExpense, updateExpense, deleteExpense, addWorkLog, updateWorkLog, deleteWorkLog, employees: employeeList, addEmployee, updateEmployee, deleteEmployee }}>
+    <AppContext.Provider value={{
+      user, setUserRole, projects,
+      addExpense, updateExpense, deleteExpense,
+      addWorkLog, updateWorkLog, deleteWorkLog,
+      employees: employeeList, addEmployee, updateEmployee, deleteEmployee,
+      addProject, updateProject, deleteProject,
+      addBooth, updateBooth, deleteBooth,
+      updatePartners,
+    }}>
       {children}
     </AppContext.Provider>
   );

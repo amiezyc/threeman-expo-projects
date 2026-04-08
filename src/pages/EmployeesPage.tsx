@@ -6,11 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Users, Plus, Pencil, Calendar, Trash2 } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Users, Plus, Pencil, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
 import StatCard from '@/components/StatCard';
 import EmployeeDialog from '@/components/EmployeeDialog';
 import { User, WorkLog } from '@/types';
 import { toast } from 'sonner';
+import { format, parseISO } from 'date-fns';
 
 const EmployeesPage = () => {
   const { employees, projects, addEmployee, updateEmployee, deleteEmployee, addWorkLog, updateWorkLog, deleteWorkLog } = useApp();
@@ -23,8 +25,10 @@ const EmployeesPage = () => {
   const [logDate, setLogDate] = useState('');
   const [logRate, setLogRate] = useState('');
   const [logProject, setLogProject] = useState('');
+
+  // Multi-date add
   const [addingLog, setAddingLog] = useState(false);
-  const [newLogDate, setNewLogDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [newLogProject, setNewLogProject] = useState(projects[0]?.id || '');
 
   const employeeStats = employees.map(emp => {
@@ -61,6 +65,7 @@ const EmployeesPage = () => {
     setWorkLogEmployee(emp);
     setEditingLog(null);
     setAddingLog(false);
+    setSelectedDates([]);
   };
 
   const startEditLog = (log: WorkLog) => {
@@ -82,18 +87,21 @@ const EmployeesPage = () => {
     toast.success('工时已删除');
   };
 
-  const handleAddLog = () => {
-    if (!workLogEmployee || !newLogProject || !newLogDate) return;
-    addWorkLog({
-      id: `wl-${Date.now()}`,
-      projectId: newLogProject,
-      userId: workLogEmployee.id,
-      userName: workLogEmployee.name,
-      date: newLogDate,
-      dailyRate: workLogEmployee.dailyRate || 250,
+  const handleAddLogs = () => {
+    if (!workLogEmployee || !newLogProject || selectedDates.length === 0) return;
+    selectedDates.forEach(date => {
+      addWorkLog({
+        id: `wl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        projectId: newLogProject,
+        userId: workLogEmployee.id,
+        userName: workLogEmployee.name,
+        date: format(date, 'yyyy-MM-dd'),
+        dailyRate: workLogEmployee.dailyRate || 250,
+      });
     });
     setAddingLog(false);
-    toast.success('工时已添加');
+    setSelectedDates([]);
+    toast.success(`已添加 ${selectedDates.length} 天工时`);
   };
 
   const empWorkLogs = workLogEmployee
@@ -170,7 +178,7 @@ const EmployeesPage = () => {
       <Dialog open={!!workLogEmployee} onOpenChange={open => !open && setWorkLogEmployee(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{workLogEmployee?.name} - 工时记录</DialogTitle>
+            <DialogTitle>{workLogEmployee?.name} - 工时记录 ({empWorkLogs.length}天)</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 max-h-[400px] overflow-y-auto">
             {empWorkLogs.length === 0 ? (
@@ -207,7 +215,7 @@ const EmployeesPage = () => {
                   ) : (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">{log.date}</span>
                         <span className="text-xs text-muted-foreground">{projects.find(p => p.id === log.projectId)?.name}</span>
                       </div>
@@ -228,24 +236,32 @@ const EmployeesPage = () => {
 
             {addingLog ? (
               <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs">项目</Label>
-                    <Select value={newLogProject} onValueChange={setNewLogProject}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">日期</Label>
-                    <Input className="h-8 text-xs" type="date" value={newLogDate} onChange={e => setNewLogDate(e.target.value)} />
-                  </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">项目</Label>
+                  <Select value={newLogProject} onValueChange={setNewLogProject}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">选择工作日期（可多选）</Label>
+                  <Calendar
+                    mode="multiple"
+                    selected={selectedDates}
+                    onSelect={(dates) => setSelectedDates(dates || [])}
+                    className="rounded-md border pointer-events-auto"
+                  />
+                  {selectedDates.length > 0 && (
+                    <p className="text-xs text-muted-foreground">已选择 {selectedDates.length} 天</p>
+                  )}
                 </div>
                 <div className="flex gap-2 justify-end">
-                  <Button size="sm" variant="outline" onClick={() => setAddingLog(false)}>取消</Button>
-                  <Button size="sm" onClick={handleAddLog}>添加</Button>
+                  <Button size="sm" variant="outline" onClick={() => { setAddingLog(false); setSelectedDates([]); }}>取消</Button>
+                  <Button size="sm" onClick={handleAddLogs} disabled={selectedDates.length === 0}>
+                    添加 {selectedDates.length > 0 ? `${selectedDates.length}天` : ''}
+                  </Button>
                 </div>
               </div>
             ) : (
