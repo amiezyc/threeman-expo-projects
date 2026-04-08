@@ -417,6 +417,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       invoice_date: payment.invoiceDate || null,
       received_date: payment.receivedDate || null,
       notes: payment.notes || null,
+      document_url: payment.documentUrl || null,
     }).select().single();
     if (error) { toast.error('保存失败'); return; }
     const newPayment = { ...payment, id: data.id };
