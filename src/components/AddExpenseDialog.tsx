@@ -5,33 +5,43 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '@/context/AppContext';
-import { ExpenseCategory, Expense } from '@/types';
+import { ExpenseMainCategory, ExpenseSubCategory, Expense, categoryStructure } from '@/types';
 import { Plus } from 'lucide-react';
 
-const categories: ExpenseCategory[] = ['材料费', '运输费', '人工费', '设计费', '印刷费', '设备租赁', '餐饮住宿', '其他'];
+const mainCategories = Object.keys(categoryStructure) as ExpenseMainCategory[];
 
 interface AddExpenseDialogProps {
-  boothId: string;
   projectId: string;
+  boothId?: string;
 }
 
-const AddExpenseDialog = ({ boothId, projectId }: AddExpenseDialogProps) => {
-  const { user, addExpense } = useApp();
+const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
+  const { user, addExpense, projects } = useApp();
   const [open, setOpen] = useState(false);
-  const [category, setCategory] = useState<ExpenseCategory>('材料费');
+  const [mainCategory, setMainCategory] = useState<ExpenseMainCategory>('差旅');
+  const [subCategory, setSubCategory] = useState<ExpenseSubCategory>(categoryStructure['差旅'][0]);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedBooth, setSelectedBooth] = useState(boothId || '');
+
+  const project = projects.find(p => p.id === projectId);
+
+  const handleMainCategoryChange = (cat: ExpenseMainCategory) => {
+    setMainCategory(cat);
+    setSubCategory(categoryStructure[cat][0]);
+    if (cat !== '三方') setSelectedBooth('');
+  };
 
   const handleSubmit = () => {
     if (!amount || !description) return;
     const expense: Expense = {
       id: `exp-${Date.now()}`,
       projectId,
-      boothId,
-      userId: user.id,
-      userName: user.name,
-      category,
+      boothId: mainCategory === '三方' ? selectedBooth : undefined,
+      paidBy: user.name,
+      mainCategory,
+      subCategory,
       amount: parseFloat(amount),
       description,
       date,
@@ -61,18 +71,42 @@ const AddExpenseDialog = ({ boothId, projectId }: AddExpenseDialogProps) => {
               <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>类别</Label>
-              <Select value={category} onValueChange={v => setCategory(v as ExpenseCategory)}>
+              <Label>大类</Label>
+              <Select value={mainCategory} onValueChange={v => handleMainCategoryChange(v as ExpenseMainCategory)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {mainCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>小类</Label>
+              <Select value={subCategory} onValueChange={v => setSubCategory(v as ExpenseSubCategory)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {categoryStructure[mainCategory].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {mainCategory === '三方' && project && (
+              <div className="space-y-2">
+                <Label>展位</Label>
+                <Select value={selectedBooth} onValueChange={setSelectedBooth}>
+                  <SelectTrigger><SelectValue placeholder="选择展位" /></SelectTrigger>
+                  <SelectContent>
+                    {project.booths.map(b => (
+                      <SelectItem key={b.id} value={b.id}>{b.clientName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
           <div className="space-y-2">
             <Label>金额 ($)</Label>
-            <Input type="number" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)} />
+            <Input type="number" step="0.01" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>说明</Label>

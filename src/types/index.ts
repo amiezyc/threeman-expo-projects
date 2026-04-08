@@ -7,17 +7,30 @@ export interface User {
   dailyRate?: number;
 }
 
-export type ExpenseCategory = 
-  | '材料费' | '运输费' | '人工费' | '设计费' 
-  | '印刷费' | '设备租赁' | '餐饮住宿' | '其他';
+export type ExpenseMainCategory = '差旅' | '物料' | '人工' | '三方' | '其他';
+
+export type ExpenseSubCategory =
+  | 'Airbnb' | 'Flight' | 'Hotel' | 'Uber' | 'Gas' | 'Parking' | '餐補' | '租車' | 'Walmart'
+  | 'Amazon' | '其他物料'
+  | '吊顶' | '劳工' | '木柜过磅' | '型材物料过磅' | '布/吊顶过磅' | '电费' | '其他三方'
+  | '日薪'
+  | '其他';
+
+export const categoryStructure: Record<ExpenseMainCategory, ExpenseSubCategory[]> = {
+  '差旅': ['Airbnb', 'Flight', 'Hotel', 'Uber', 'Gas', 'Parking', '餐補', '租車', 'Walmart'],
+  '物料': ['Amazon', '其他物料'],
+  '人工': ['日薪'],
+  '三方': ['吊顶', '劳工', '木柜过磅', '型材物料过磅', '布/吊顶过磅', '电费', '其他三方'],
+  '其他': ['其他'],
+};
 
 export interface Expense {
   id: string;
   projectId: string;
-  boothId: string;
-  userId: string;
-  userName: string;
-  category: ExpenseCategory;
+  boothId?: string; // optional - 三方 costs are booth-specific, others may be project-level
+  paidBy: string; // who paid
+  mainCategory: ExpenseMainCategory;
+  subCategory: ExpenseSubCategory;
   amount: number;
   description: string;
   date: string;
@@ -27,7 +40,7 @@ export interface Expense {
 export interface WorkLog {
   id: string;
   projectId: string;
-  boothId: string;
+  boothId?: string;
   userId: string;
   userName: string;
   date: string;
@@ -53,8 +66,6 @@ export interface Booth {
   clientName: string;
   totalContract: number;
   payments: Payment[];
-  expenses: Expense[];
-  workLogs: WorkLog[];
 }
 
 export interface Project {
@@ -63,4 +74,6 @@ export interface Project {
   startDate: string;
   endDate?: string;
   booths: Booth[];
+  expenses: Expense[];
+  workLogs: WorkLog[];
 }

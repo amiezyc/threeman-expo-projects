@@ -10,25 +10,22 @@ import { Calendar, DollarSign } from 'lucide-react';
 const WorkLogPage = () => {
   const { user, projects, addWorkLog } = useApp();
   const allBooths = projects.flatMap(p => p.booths);
-  const myLogs = allBooths.flatMap(b => b.workLogs).filter(w => w.userId === user.id);
+  const myLogs = projects.flatMap(p => p.workLogs).filter(w => w.userId === user.id);
   const totalDays = myLogs.length;
   const totalPay = myLogs.reduce((s, w) => s + w.dailyRate, 0);
 
-  const [selectedBooth, setSelectedBooth] = useState(allBooths[0]?.id || '');
+  const [selectedProject, setSelectedProject] = useState(projects[0]?.id || '');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
   const handleAddLog = () => {
-    if (!selectedBooth || !date) return;
-    const booth = allBooths.find(b => b.id === selectedBooth);
-    if (!booth) return;
+    if (!selectedProject || !date) return;
     addWorkLog({
       id: `wl-${Date.now()}`,
-      projectId: booth.projectId,
-      boothId: booth.id,
+      projectId: selectedProject,
       userId: user.id,
       userName: user.name,
       date,
-      dailyRate: user.dailyRate || 300,
+      dailyRate: user.dailyRate || 250,
     });
   };
 
@@ -48,12 +45,12 @@ const WorkLogPage = () => {
         <h4 className="font-semibold">添加工时</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label>展位</Label>
-            <Select value={selectedBooth} onValueChange={setSelectedBooth}>
-              <SelectTrigger><SelectValue placeholder="选择展位" /></SelectTrigger>
+            <Label>项目</Label>
+            <Select value={selectedProject} onValueChange={setSelectedProject}>
+              <SelectTrigger><SelectValue placeholder="选择项目" /></SelectTrigger>
               <SelectContent>
-                {allBooths.map(b => (
-                  <SelectItem key={b.id} value={b.id}>{b.clientName}</SelectItem>
+                {projects.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -81,7 +78,7 @@ const WorkLogPage = () => {
                   <span className="text-sm">{log.date}</span>
                 </div>
                 <div className="flex items-center gap-4 text-sm">
-                  <span className="text-muted-foreground">{allBooths.find(b => b.id === log.boothId)?.clientName}</span>
+                  <span className="text-muted-foreground">{projects.find(p => p.id === log.projectId)?.name}</span>
                   <span className="font-bold">${log.dailyRate}</span>
                 </div>
               </div>

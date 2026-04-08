@@ -32,25 +32,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addExpense = (expense: Expense) => {
-    setProjects(prev => prev.map(p => ({
-      ...p,
-      booths: p.booths.map(b =>
-        b.id === expense.boothId
-          ? { ...b, expenses: [...b.expenses, expense] }
-          : b
-      ),
-    })));
+    setProjects(prev => prev.map(p =>
+      p.id === expense.projectId
+        ? { ...p, expenses: [...p.expenses, expense] }
+        : p
+    ));
   };
 
   const addWorkLog = (workLog: WorkLog) => {
-    setProjects(prev => prev.map(p => ({
-      ...p,
-      booths: p.booths.map(b =>
-        b.id === workLog.boothId
-          ? { ...b, workLogs: [...b.workLogs, workLog] }
-          : b
-      ),
-    })));
+    setProjects(prev => prev.map(p =>
+      p.id === workLog.projectId
+        ? { ...p, workLogs: [...p.workLogs, workLog] }
+        : p
+    ));
   };
 
   return (
