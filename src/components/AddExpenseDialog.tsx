@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '@/context/AppContext';
 import { ExpenseMainCategory, ExpenseSubCategory, Expense, categoryStructure } from '@/types';
-import { Plus } from 'lucide-react';
+import { Plus, Upload, X } from 'lucide-react';
 
 const mainCategories = Object.keys(categoryStructure) as ExpenseMainCategory[];
 
@@ -24,6 +24,8 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedBooth, setSelectedBooth] = useState(boothId || '');
+  const [receiptUrl, setReceiptUrl] = useState('');
+  const [receiptPreview, setReceiptPreview] = useState('');
 
   const project = projects.find(p => p.id === projectId);
 
@@ -31,6 +33,18 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
     setMainCategory(cat);
     setSubCategory(categoryStructure[cat][0]);
     if (cat !== '三方') setSelectedBooth('');
+  };
+
+  const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setReceiptUrl(result);
+      setReceiptPreview(result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = () => {
@@ -45,11 +59,14 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
       amount: parseFloat(amount),
       description,
       date,
+      receiptUrl: receiptUrl || undefined,
     };
     addExpense(expense);
     setOpen(false);
     setAmount('');
     setDescription('');
+    setReceiptUrl('');
+    setReceiptPreview('');
   };
 
   return (
@@ -112,6 +129,29 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
             <Label>说明</Label>
             <Input placeholder="开销说明..." value={description} onChange={e => setDescription(e.target.value)} />
           </div>
+
+          {/* Receipt upload */}
+          <div className="space-y-2">
+            <Label>收据/Receipt</Label>
+            {receiptPreview ? (
+              <div className="relative rounded-lg overflow-hidden border border-border">
+                <img src={receiptPreview} alt="Receipt" className="w-full max-h-48 object-contain bg-muted" />
+                <button
+                  onClick={() => { setReceiptUrl(''); setReceiptPreview(''); }}
+                  className="absolute top-2 right-2 rounded-full bg-background/80 p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 p-4 cursor-pointer hover:border-primary/50 transition-colors">
+                <Upload className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">上传收据图片</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleReceiptUpload} />
+              </label>
+            )}
+          </div>
+
           <Button className="w-full" onClick={handleSubmit}>提交</Button>
         </div>
       </DialogContent>

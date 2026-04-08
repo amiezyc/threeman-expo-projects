@@ -1,7 +1,8 @@
 import { Expense, ExpenseMainCategory } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Pencil, Image } from 'lucide-react';
 import { useState } from 'react';
+import EditExpenseDialog from './EditExpenseDialog';
 
 interface ExpenseBreakdownProps {
   expenses: Expense[];
@@ -18,6 +19,7 @@ const mainCategoryColors: Record<ExpenseMainCategory, string> = {
 
 const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   const toggle = (cat: string) => {
     setExpandedCategories(prev => {
@@ -27,7 +29,6 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
     });
   };
 
-  // Group by main category
   const grouped = expenses.reduce<Record<string, Expense[]>>((acc, e) => {
     const key = e.mainCategory;
     if (!acc[key]) acc[key] = [];
@@ -35,7 +36,6 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
     return acc;
   }, {});
 
-  // Group by paidBy
   const byPayer = expenses.reduce<Record<string, number>>((acc, e) => {
     acc[e.paidBy] = (acc[e.paidBy] || 0) + e.amount;
     return acc;
@@ -67,7 +67,6 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
           const catTotal = items.reduce((s, e) => s + e.amount, 0);
           const expanded = expandedCategories.has(cat);
 
-          // Sub-group
           const subGrouped = items.reduce<Record<string, { total: number; items: Expense[] }>>((acc, e) => {
             if (!acc[e.subCategory]) acc[e.subCategory] = { total: 0, items: [] };
             acc[e.subCategory].total += e.amount;
@@ -91,14 +90,30 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
               {expanded && (
                 <div className="ml-7 space-y-0.5 pb-2">
                   {Object.entries(subGrouped).map(([sub, data]) => (
-                    <div key={sub} className="flex items-center justify-between rounded-md px-4 py-2 text-sm bg-muted/30">
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">{sub}</span>
-                        {data.items.length > 1 && (
-                          <span className="text-xs text-muted-foreground/60">({data.items.length}笔)</span>
-                        )}
-                      </div>
-                      <span className="font-medium">${data.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <div key={sub} className="space-y-0.5">
+                      {data.items.length > 1 && (
+                        <div className="flex items-center justify-between rounded-md px-4 py-1.5 text-xs text-muted-foreground">
+                          <span>{sub} ({data.items.length}笔)</span>
+                          <span className="font-medium">${data.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      {data.items.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => setEditingExpense(item)}
+                          className="flex w-full items-center justify-between rounded-md px-4 py-2 text-sm bg-muted/30 hover:bg-muted/60 transition-colors group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">{data.items.length === 1 ? sub : ''}</span>
+                            <span className="text-xs text-muted-foreground/80">{item.description}</span>
+                            {item.receiptUrl && <Image className="h-3 w-3 text-primary" />}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -107,6 +122,14 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
           );
         })}
       </div>
+
+      {editingExpense && (
+        <EditExpenseDialog
+          expense={editingExpense}
+          open={!!editingExpense}
+          onOpenChange={(open) => !open && setEditingExpense(null)}
+        />
+      )}
     </div>
   );
 };
