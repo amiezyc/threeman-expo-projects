@@ -2,15 +2,30 @@ import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Users, Plus, Pencil } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Users, Plus, Pencil, Calendar, Trash2 } from 'lucide-react';
 import StatCard from '@/components/StatCard';
 import EmployeeDialog from '@/components/EmployeeDialog';
-import { User } from '@/types';
+import { User, WorkLog } from '@/types';
+import { toast } from 'sonner';
 
 const EmployeesPage = () => {
-  const { employees, projects, addEmployee, updateEmployee, deleteEmployee } = useApp();
+  const { employees, projects, addEmployee, updateEmployee, deleteEmployee, addWorkLog, updateWorkLog, deleteWorkLog } = useApp();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<User | null>(null);
+
+  // Work log management
+  const [workLogEmployee, setWorkLogEmployee] = useState<User | null>(null);
+  const [editingLog, setEditingLog] = useState<WorkLog | null>(null);
+  const [logDate, setLogDate] = useState('');
+  const [logRate, setLogRate] = useState('');
+  const [logProject, setLogProject] = useState('');
+  const [addingLog, setAddingLog] = useState(false);
+  const [newLogDate, setNewLogDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newLogProject, setNewLogProject] = useState(projects[0]?.id || '');
 
   const employeeStats = employees.map(emp => {
     const workLogs = projects.flatMap(p => p.workLogs).filter(w => w.userId === emp.id);
@@ -18,7 +33,7 @@ const EmployeesPage = () => {
     const totalDays = workLogs.length;
     const totalPay = workLogs.reduce((s, w) => s + w.dailyRate, 0);
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
-    return { ...emp, totalDays, totalPay, totalExpenses };
+    return { ...emp, totalDays, totalPay, totalExpenses, workLogs };
   });
 
   const totalLabor = employeeStats.reduce((s, e) => s + e.totalPay, 0);
@@ -41,6 +56,49 @@ const EmployeesPage = () => {
     setEditingEmployee(null);
     setDialogOpen(true);
   };
+
+  const openWorkLogs = (emp: User) => {
+    setWorkLogEmployee(emp);
+    setEditingLog(null);
+    setAddingLog(false);
+  };
+
+  const startEditLog = (log: WorkLog) => {
+    setEditingLog(log);
+    setLogDate(log.date);
+    setLogRate(String(log.dailyRate));
+    setLogProject(log.projectId);
+  };
+
+  const saveEditLog = () => {
+    if (!editingLog) return;
+    updateWorkLog({ ...editingLog, date: logDate, dailyRate: Number(logRate), projectId: logProject });
+    setEditingLog(null);
+    toast.success('工时已更新');
+  };
+
+  const handleDeleteLog = (log: WorkLog) => {
+    deleteWorkLog(log.projectId, log.id);
+    toast.success('工时已删除');
+  };
+
+  const handleAddLog = () => {
+    if (!workLogEmployee || !newLogProject || !newLogDate) return;
+    addWorkLog({
+      id: `wl-${Date.now()}`,
+      projectId: newLogProject,
+      userId: workLogEmployee.id,
+      userName: workLogEmployee.name,
+      date: newLogDate,
+      dailyRate: workLogEmployee.dailyRate || 250,
+    });
+    setAddingLog(false);
+    toast.success('工时已添加');
+  };
+
+  const empWorkLogs = workLogEmployee
+    ? projects.flatMap(p => p.workLogs).filter(w => w.userId === workLogEmployee.id)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -77,7 +135,15 @@ const EmployeesPage = () => {
                 <TableRow key={emp.id}>
                   <TableCell className="font-medium">{emp.name}</TableCell>
                   <TableCell>${emp.dailyRate ?? '-'}</TableCell>
-                  <TableCell>{emp.totalDays}天</TableCell>
+                  <TableCell>
+                    <button
+                      onClick={() => openWorkLogs(emp)}
+                      className="inline-flex items-center gap-1 text-primary hover:underline cursor-pointer"
+                    >
+                      {emp.totalDays}天
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  </TableCell>
                   <TableCell className="font-semibold">${emp.totalPay.toLocaleString()}</TableCell>
                   <TableCell>${emp.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                   <TableCell>
@@ -99,6 +165,97 @@ const EmployeesPage = () => {
         onSave={handleSave}
         onDelete={deleteEmployee}
       />
+
+      {/* Work Log Management Dialog */}
+      <Dialog open={!!workLogEmployee} onOpenChange={open => !open && setWorkLogEmployee(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{workLogEmployee?.name} - 工时记录</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[400px] overflow-y-auto">
+            {empWorkLogs.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4 text-sm">暂无工时记录</p>
+            ) : (
+              empWorkLogs.map(log => (
+                <div key={log.id} className="rounded-md border border-border/50 bg-muted/30 px-4 py-3">
+                  {editingLog?.id === log.id ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">项目</Label>
+                          <Select value={logProject} onValueChange={setLogProject}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">日期</Label>
+                          <Input className="h-8 text-xs" type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">日薪</Label>
+                          <Input className="h-8 text-xs" type="number" value={logRate} onChange={e => setLogRate(e.target.value)} />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <Button size="sm" variant="outline" onClick={() => setEditingLog(null)}>取消</Button>
+                        <Button size="sm" onClick={saveEditLog}>保存</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{log.date}</span>
+                        <span className="text-xs text-muted-foreground">{projects.find(p => p.id === log.projectId)?.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">${log.dailyRate}</span>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEditLog(log)}>
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteLog(log)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+
+            {addingLog ? (
+              <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">项目</Label>
+                    <Select value={newLogProject} onValueChange={setNewLogProject}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">日期</Label>
+                    <Input className="h-8 text-xs" type="date" value={newLogDate} onChange={e => setNewLogDate(e.target.value)} />
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button size="sm" variant="outline" onClick={() => setAddingLog(false)}>取消</Button>
+                  <Button size="sm" onClick={handleAddLog}>添加</Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" className="w-full gap-1" onClick={() => setAddingLog(true)}>
+                <Plus className="h-4 w-4" /> 添加工时
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
