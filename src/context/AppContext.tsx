@@ -7,6 +7,8 @@ interface AppContextType {
   setUserRole: (role: UserRole) => void;
   projects: Project[];
   addExpense: (expense: Expense) => void;
+  updateExpense: (expense: Expense) => void;
+  deleteExpense: (projectId: string, expenseId: string) => void;
   addWorkLog: (workLog: WorkLog) => void;
   employees: User[];
 }
