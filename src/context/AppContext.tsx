@@ -297,7 +297,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const byEmployee = new Map<string, { userName: string; total: number }>();
     project.workLogs.forEach(w => {
       const existing = byEmployee.get(w.userId) || { userName: w.userName, total: 0 };
-      existing.total += w.dailyRate;
+      const pay = w.rateType === 'hourly' ? w.dailyRate * (w.hours || 0) : w.dailyRate;
+      existing.total += pay;
       byEmployee.set(w.userId, existing);
     });
 
