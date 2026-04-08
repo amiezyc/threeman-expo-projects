@@ -437,6 +437,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       invoice_date: payment.invoiceDate || null,
       received_date: payment.receivedDate || null,
       notes: payment.notes || null,
+      document_url: payment.documentUrl || null,
     }).eq('id', payment.id);
     setProjects(prev => prev.map(p => ({
       ...p,
