@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '@/context/AppContext';
 import { ExpenseMainCategory, ExpenseSubCategory, Expense, categoryStructure } from '@/types';
-import { Plus, Upload, X } from 'lucide-react';
+import { Plus, Upload, X, Loader2, Sparkles } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const mainCategories = Object.keys(categoryStructure) as ExpenseMainCategory[];
 
@@ -26,6 +28,7 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
   const [selectedBooth, setSelectedBooth] = useState(boothId || '');
   const [receiptUrl, setReceiptUrl] = useState('');
   const [receiptPreview, setReceiptPreview] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
 
   const project = projects.find(p => p.id === projectId);
 
@@ -33,6 +36,32 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
     setMainCategory(cat);
     setSubCategory(categoryStructure[cat][0]);
     if (cat !== '三方') setSelectedBooth('');
+  };
+
+  const analyzeReceipt = async (base64: string) => {
+    setAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-receipt', {
+        body: { imageBase64: base64 },
+      });
+      if (error) throw error;
+      if (data && !data.error) {
+        const mc = data.mainCategory as ExpenseMainCategory;
+        if (categoryStructure[mc]) {
+          setMainCategory(mc);
+          const validSub = categoryStructure[mc].includes(data.subCategory as ExpenseSubCategory);
+          setSubCategory(validSub ? data.subCategory : categoryStructure[mc][0]);
+        }
+        if (data.amount) setAmount(String(data.amount));
+        if (data.description) setDescription(data.description);
+        toast.success('AI已自动识别收据内容');
+      }
+    } catch (e) {
+      console.error('Receipt analysis failed:', e);
+      toast.error('收据识别失败，请手动填写');
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,6 +72,7 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
       const result = reader.result as string;
       setReceiptUrl(result);
       setReceiptPreview(result);
+      analyzeReceipt(result);
     };
     reader.readAsDataURL(file);
   };
@@ -82,6 +112,32 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
           <DialogTitle>添加开销</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
+          {/* Receipt upload - moved to top for AI auto-fill */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              收据/Receipt
+              {analyzing && <span className="flex items-center gap-1 text-xs text-primary"><Loader2 className="h-3 w-3 animate-spin" />AI识别中...</span>}
+              {!analyzing && <span className="text-xs text-muted-foreground flex items-center gap-1"><Sparkles className="h-3 w-3" />上传后AI自动识别</span>}
+            </Label>
+            {receiptPreview ? (
+              <div className="relative rounded-lg overflow-hidden border border-border">
+                <img src={receiptPreview} alt="Receipt" className="w-full max-h-48 object-contain bg-muted" />
+                <button
+                  onClick={() => { setReceiptUrl(''); setReceiptPreview(''); }}
+                  className="absolute top-2 right-2 rounded-full bg-background/80 p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 p-4 cursor-pointer hover:border-primary/50 transition-colors">
+                <Upload className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">上传收据图片</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleReceiptUpload} />
+              </label>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>日期</Label>
@@ -130,29 +186,7 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
             <Input placeholder="开销说明..." value={description} onChange={e => setDescription(e.target.value)} />
           </div>
 
-          {/* Receipt upload */}
-          <div className="space-y-2">
-            <Label>收据/Receipt</Label>
-            {receiptPreview ? (
-              <div className="relative rounded-lg overflow-hidden border border-border">
-                <img src={receiptPreview} alt="Receipt" className="w-full max-h-48 object-contain bg-muted" />
-                <button
-                  onClick={() => { setReceiptUrl(''); setReceiptPreview(''); }}
-                  className="absolute top-2 right-2 rounded-full bg-background/80 p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <label className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 p-4 cursor-pointer hover:border-primary/50 transition-colors">
-                <Upload className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">上传收据图片</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleReceiptUpload} />
-              </label>
-            )}
-          </div>
-
-          <Button className="w-full" onClick={handleSubmit}>提交</Button>
+          <Button className="w-full" onClick={handleSubmit} disabled={analyzing}>提交</Button>
         </div>
       </DialogContent>
     </Dialog>
