@@ -48,6 +48,8 @@ export interface WorkLog {
   userName: string;
   date: string;
   dailyRate: number;
+  rateType: RateType;
+  hours?: number;
 }
 
 export type PaymentStatus = 'pending' | 'invoiced' | 'received';
