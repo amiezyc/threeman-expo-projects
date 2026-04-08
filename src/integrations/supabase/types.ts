@@ -14,7 +14,252 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      booths: {
+        Row: {
+          client_name: string
+          id: string
+          project_id: string
+          total_contract: number
+        }
+        Insert: {
+          client_name: string
+          id?: string
+          project_id: string
+          total_contract?: number
+        }
+        Update: {
+          client_name?: string
+          id?: string
+          project_id?: string
+          total_contract?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booths_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          created_at: string
+          daily_rate: number | null
+          id: string
+          name: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          daily_rate?: number | null
+          id?: string
+          name: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          daily_rate?: number | null
+          id?: string
+          name?: string
+          role?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          booth_id: string | null
+          date: string
+          description: string
+          id: string
+          main_category: string
+          paid_by: string
+          project_id: string
+          receipt_url: string | null
+          sub_category: string
+        }
+        Insert: {
+          amount?: number
+          booth_id?: string | null
+          date: string
+          description?: string
+          id?: string
+          main_category: string
+          paid_by: string
+          project_id: string
+          receipt_url?: string | null
+          sub_category: string
+        }
+        Update: {
+          amount?: number
+          booth_id?: string | null
+          date?: string
+          description?: string
+          id?: string
+          main_category?: string
+          paid_by?: string
+          project_id?: string
+          receipt_url?: string | null
+          sub_category?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_booth_id_fkey"
+            columns: ["booth_id"]
+            isOneToOne: false
+            referencedRelation: "booths"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_shares: {
+        Row: {
+          id: string
+          name: string
+          percentage: number
+          project_id: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          percentage?: number
+          project_id: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          percentage?: number
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_shares_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          booth_id: string
+          id: string
+          invoice_date: string | null
+          notes: string | null
+          received_date: string | null
+          status: string
+          type: string
+        }
+        Insert: {
+          amount?: number
+          booth_id: string
+          id?: string
+          invoice_date?: string | null
+          notes?: string | null
+          received_date?: string | null
+          status?: string
+          type?: string
+        }
+        Update: {
+          amount?: number
+          booth_id?: string
+          id?: string
+          invoice_date?: string | null
+          notes?: string | null
+          received_date?: string | null
+          status?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_booth_id_fkey"
+            columns: ["booth_id"]
+            isOneToOne: false
+            referencedRelation: "booths"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          name: string
+          start_date: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name: string
+          start_date: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name?: string
+          start_date?: string
+        }
+        Relationships: []
+      }
+      work_logs: {
+        Row: {
+          booth_id: string | null
+          daily_rate: number
+          date: string
+          id: string
+          project_id: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          booth_id?: string | null
+          daily_rate?: number
+          date: string
+          id?: string
+          project_id: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          booth_id?: string | null
+          daily_rate?: number
+          date?: string
+          id?: string
+          project_id?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_logs_booth_id_fkey"
+            columns: ["booth_id"]
+            isOneToOne: false
+            referencedRelation: "booths"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

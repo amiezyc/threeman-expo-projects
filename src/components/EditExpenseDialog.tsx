@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '@/context/AppContext';
 import { ExpenseMainCategory, ExpenseSubCategory, Expense, categoryStructure } from '@/types';
-import { Trash2, Upload, X, Image } from 'lucide-react';
+import { Trash2, Upload, X, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const mainCategories = Object.keys(categoryStructure) as ExpenseMainCategory[];
 
@@ -27,6 +28,7 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
   const [selectedBooth, setSelectedBooth] = useState(expense.boothId || '');
   const [receiptUrl, setReceiptUrl] = useState(expense.receiptUrl || '');
   const [receiptPreview, setReceiptPreview] = useState(expense.receiptUrl || '');
+  const [uploading, setUploading] = useState(false);
 
   const project = projects.find(p => p.id === expense.projectId);
 
@@ -36,16 +38,25 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
     if (cat !== '三方') setSelectedBooth('');
   };
 
-  const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Preview
     const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      setReceiptUrl(result);
-      setReceiptPreview(result);
-    };
+    reader.onloadend = () => setReceiptPreview(reader.result as string);
     reader.readAsDataURL(file);
+
+    // Upload to storage
+    setUploading(true);
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${expense.projectId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('receipts').upload(path, file);
+    if (!error) {
+      const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(path);
+      setReceiptUrl(urlData.publicUrl);
+    }
+    setUploading(false);
   };
 
   const handleRemoveReceipt = () => {
@@ -133,9 +144,11 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
             <Input value={description} onChange={e => setDescription(e.target.value)} />
           </div>
 
-          {/* Receipt upload */}
           <div className="space-y-2">
-            <Label>收据/Receipt</Label>
+            <Label className="flex items-center gap-2">
+              收据/Receipt
+              {uploading && <span className="flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />上传中...</span>}
+            </Label>
             {receiptPreview ? (
               <div className="relative rounded-lg overflow-hidden border border-border">
                 <img src={receiptPreview} alt="Receipt" className="w-full max-h-48 object-contain bg-muted" />
@@ -160,7 +173,7 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
               <Trash2 className="h-4 w-4" />
               删除
             </Button>
-            <Button className="flex-1" onClick={handleSubmit}>保存</Button>
+            <Button className="flex-1" onClick={handleSubmit} disabled={uploading}>保存</Button>
           </div>
         </div>
       </DialogContent>
