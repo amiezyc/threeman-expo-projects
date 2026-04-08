@@ -27,14 +27,19 @@ export const useApp = () => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User>(currentUser);
   const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const [employeeList, setEmployeeList] = useState<User[]>(initialEmployees);
 
   const setUserRole = (role: UserRole) => {
     if (role === 'boss') {
       setUser(currentUser);
     } else {
-      setUser({ ...employees[0], role: 'employee' });
+      setUser({ ...employeeList[0], role: 'employee' });
     }
   };
+
+  const addEmployee = (emp: User) => setEmployeeList(prev => [...prev, emp]);
+  const updateEmployee = (emp: User) => setEmployeeList(prev => prev.map(e => e.id === emp.id ? emp : e));
+  const deleteEmployee = (id: string) => setEmployeeList(prev => prev.filter(e => e.id !== id));
 
   const addExpense = (expense: Expense) => {
     setProjects(prev => prev.map(p =>
