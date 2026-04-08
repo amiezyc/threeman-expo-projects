@@ -1,6 +1,6 @@
 import { Payment } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Clock, FileText } from 'lucide-react';
+import { CheckCircle, Clock, FileText, Paperclip } from 'lucide-react';
 
 const statusConfig = {
   received: { label: '已收款', icon: CheckCircle, variant: 'default' as const, className: 'bg-success/10 text-success border-success/20' },
@@ -37,9 +37,17 @@ const PaymentTracker = ({ payments, clientName }: PaymentTrackerProps) => {
                 <div>
                   <span className="text-sm font-medium">{payment.type === 'deposit' ? '首款' : '尾款'}</span>
                   <span className="ml-2 text-sm font-bold">${payment.amount.toLocaleString()}</span>
+                  {payment.invoiceDate && (
+                    <span className="ml-2 text-xs text-muted-foreground">{payment.invoiceDate}</span>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {payment.documentUrl && (
+                  <a href={payment.documentUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                    <Paperclip className="h-3.5 w-3.5" />
+                  </a>
+                )}
                 {payment.notes && <span className="text-xs text-muted-foreground max-w-[200px] truncate">{payment.notes}</span>}
                 <Badge className={config.className}>{config.label}</Badge>
               </div>
