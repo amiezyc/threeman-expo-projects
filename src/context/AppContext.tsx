@@ -284,6 +284,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ));
   };
 
+  // === Sync labor expenses from work logs ===
+  const syncLaborExpenses = async (projectId: string, updatedProjects?: Project[]) => {
+    const source = updatedProjects || projects;
+    const project = source.find(p => p.id === projectId);
+    if (!project) return;
+
+    // Group work logs by employee
+    const byEmployee = new Map<string, { userName: string; total: number }>();
+    project.workLogs.forEach(w => {
+      const existing = byEmployee.get(w.userId) || { userName: w.userName, total: 0 };
+      existing.total += w.dailyRate;
+      byEmployee.set(w.userId, existing);
+    });
+
+    // Get existing auto-generated labor expenses (sub_category starts with "auto:")
+    const existingLaborExpenses = project.expenses.filter(
+      e => e.mainCategory === '人工' && e.subCategory.startsWith('auto:')
+    );
+
+    const newExpenses = [...project.expenses.filter(e => !(e.mainCategory === '人工' && e.subCategory.startsWith('auto:')))];
+
+    // Delete old auto labor expenses from DB
+    const oldIds = existingLaborExpenses.map(e => e.id);
+    if (oldIds.length > 0) {
+      await supabase.from('expenses').delete().in('id', oldIds);
+    }
+
+    // Insert new auto labor expenses
+    for (const [userId, info] of byEmployee) {
+      if (info.total <= 0) continue;
+      const { data, error } = await supabase.from('expenses').insert({
+        project_id: projectId,
+        booth_id: null,
+        paid_by: 'Ami',
+        main_category: '人工',
+        sub_category: `auto:${userId}`,
+        amount: info.total,
+        description: `${info.userName} 人工费`,
+        date: new Date().toISOString().split('T')[0],
+      }).select().single();
+      if (!error && data) {
+        newExpenses.push({
+          id: data.id,
+          projectId,
+          paidBy: 'Ami',
+          mainCategory: '人工' as any,
+          subCategory: `auto:${userId}` as any,
+          amount: info.total,
+          description: `${info.userName} 人工费`,
+          date: new Date().toISOString().split('T')[0],
+        });
+      }
+    }
+
+    setProjects(prev => prev.map(p =>
+      p.id === projectId ? { ...p, expenses: newExpenses } : p
+    ));
+  };
+
   // === Work Logs ===
   const addWorkLog = async (workLog: WorkLog) => {
     const { data, error } = await supabase.from('work_logs').insert({
@@ -296,9 +355,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }).select().single();
     if (error) { toast.error('保存失败'); return; }
     const newLog = { ...workLog, id: data.id };
-    setProjects(prev => prev.map(p =>
+    const updated = projects.map(p =>
       p.id === workLog.projectId ? { ...p, workLogs: [...p.workLogs, newLog] } : p
-    ));
+    );
+    setProjects(updated);
+    await syncLaborExpenses(workLog.projectId, updated);
   };
 
   const updateWorkLog = async (workLog: WorkLog) => {
@@ -308,16 +369,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       date: workLog.date,
       daily_rate: workLog.dailyRate,
     }).eq('id', workLog.id);
-    setProjects(prev => prev.map(p =>
+    const updated = projects.map(p =>
       p.id === workLog.projectId ? { ...p, workLogs: p.workLogs.map(w => w.id === workLog.id ? workLog : w) } : p
-    ));
+    );
+    setProjects(updated);
+    await syncLaborExpenses(workLog.projectId, updated);
   };
 
   const deleteWorkLog = async (projectId: string, workLogId: string) => {
     await supabase.from('work_logs').delete().eq('id', workLogId);
-    setProjects(prev => prev.map(p =>
+    const updated = projects.map(p =>
       p.id === projectId ? { ...p, workLogs: p.workLogs.filter(w => w.id !== workLogId) } : p
-    ));
+    );
+    setProjects(updated);
+    await syncLaborExpenses(projectId, updated);
   };
 
   // === Payments ===
