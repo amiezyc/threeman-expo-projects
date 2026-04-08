@@ -75,13 +75,6 @@ export interface Booth {
   contractUrl?: string;
 }
 
-export interface Booth {
-  id: string;
-  projectId: string;
-  clientName: string;
-  totalContract: number;
-  payments: Payment[];
-}
 
 export interface PartnerShare {
   name: string;
