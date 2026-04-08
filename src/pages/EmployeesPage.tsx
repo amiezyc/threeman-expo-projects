@@ -258,7 +258,12 @@ const EmployeesPage = () => {
                         <span className="text-xs text-muted-foreground">{projects.find(p => p.id === log.projectId)?.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">${log.dailyRate}</span>
+                        <span className="text-sm font-semibold">
+                          {log.rateType === 'hourly' 
+                            ? `$${log.dailyRate}/hr × ${log.hours || 0}h = $${(log.dailyRate * (log.hours || 0)).toFixed(2)}`
+                            : `$${log.dailyRate}/天`
+                          }
+                        </span>
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEditLog(log)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
