@@ -5,11 +5,10 @@ import StatCard from '@/components/StatCard';
 
 const EmployeesPage = () => {
   const { employees, projects } = useApp();
-  const allBooths = projects.flatMap(p => p.booths);
 
   const employeeStats = employees.map(emp => {
-    const workLogs = allBooths.flatMap(b => b.workLogs).filter(w => w.userId === emp.id);
-    const expenses = allBooths.flatMap(b => b.expenses).filter(e => e.userId === emp.id);
+    const workLogs = projects.flatMap(p => p.workLogs).filter(w => w.userId === emp.id);
+    const expenses = projects.flatMap(p => p.expenses).filter(e => e.paidBy === emp.name);
     const totalDays = workLogs.length;
     const totalPay = workLogs.reduce((s, w) => s + w.dailyRate, 0);
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
@@ -39,7 +38,7 @@ const EmployeesPage = () => {
                 <TableHead>日薪</TableHead>
                 <TableHead>工作天数</TableHead>
                 <TableHead>人工费合计</TableHead>
-                <TableHead>提交开销</TableHead>
+                <TableHead>垫付开销</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -49,7 +48,7 @@ const EmployeesPage = () => {
                   <TableCell>${emp.dailyRate}</TableCell>
                   <TableCell>{emp.totalDays}天</TableCell>
                   <TableCell className="font-semibold">${emp.totalPay.toLocaleString()}</TableCell>
-                  <TableCell>${emp.totalExpenses.toLocaleString()}</TableCell>
+                  <TableCell>${emp.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

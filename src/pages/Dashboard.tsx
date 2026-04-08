@@ -1,23 +1,12 @@
 import { useApp } from '@/context/AppContext';
 import StatCard from '@/components/StatCard';
 import PaymentTracker from '@/components/PaymentTracker';
-import ExpenseTable from '@/components/ExpenseTable';
+import ExpenseBreakdown from '@/components/ExpenseBreakdown';
+import AddExpenseDialog from '@/components/AddExpenseDialog';
 import { DollarSign, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 
 const Dashboard = () => {
   const { projects } = useApp();
-
-  const allBooths = projects.flatMap(p => p.booths);
-  const allExpenses = allBooths.flatMap(b => b.expenses);
-  const allWorkLogs = allBooths.flatMap(b => b.workLogs);
-
-  const totalContract = allBooths.reduce((s, b) => s + b.totalContract, 0);
-  const totalExpenses = allExpenses.reduce((s, e) => s + e.amount, 0);
-  const totalLabor = allWorkLogs.reduce((s, w) => s + w.dailyRate, 0);
-  const totalCost = totalExpenses + totalLabor;
-  const totalReceived = allBooths.flatMap(b => b.payments).filter(p => p.status === 'received').reduce((s, p) => s + p.amount, 0);
-  const totalPending = allBooths.flatMap(b => b.payments).filter(p => p.status !== 'received').reduce((s, p) => s + p.amount, 0);
-  const profit = totalContract - totalCost;
 
   return (
     <div className="space-y-6">
@@ -26,31 +15,68 @@ const Dashboard = () => {
         <p className="text-muted-foreground text-sm">所有项目的财务概况</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="合同总额" value={`$${totalContract.toLocaleString()}`} icon={DollarSign} />
-        <StatCard title="总成本" value={`$${totalCost.toLocaleString()}`} subtitle={`开销 $${totalExpenses.toLocaleString()} + 人工 $${totalLabor.toLocaleString()}`} icon={TrendingDown} variant="warning" />
-        <StatCard title="预计利润" value={`$${profit.toLocaleString()}`} subtitle={`利润率 ${((profit / totalContract) * 100).toFixed(1)}%`} icon={TrendingUp} variant={profit > 0 ? 'success' : 'destructive'} />
-        <StatCard title="待收款" value={`$${totalPending.toLocaleString()}`} subtitle={`已收 $${totalReceived.toLocaleString()}`} icon={Clock} variant="warning" />
-      </div>
+      {projects.map(project => {
+        const totalContract = project.booths.reduce((s, b) => s + b.totalContract, 0);
+        const totalExpenses = project.expenses.reduce((s, e) => s + e.amount, 0);
+        const totalReceived = project.booths.flatMap(b => b.payments).filter(p => p.status === 'received').reduce((s, p) => s + p.amount, 0);
+        const totalPending = project.booths.flatMap(b => b.payments).filter(p => p.status !== 'received').reduce((s, p) => s + p.amount, 0);
+        const profit = totalContract - totalExpenses;
 
-      {projects.map(project => (
-        <div key={project.id} className="space-y-4">
-          <h3 className="text-lg font-semibold border-b border-border pb-2">{project.name}</h3>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {project.booths.map(booth => (
-              <div key={booth.id} className="glass-card rounded-lg p-5 space-y-4">
-                <PaymentTracker payments={booth.payments} clientName={booth.clientName} />
+        // Split expenses: booth-specific (三方) vs project-level
+        const boothExpenses = (boothId: string) => project.expenses.filter(e => e.boothId === boothId);
+        const projectLevelExpenses = project.expenses.filter(e => !e.boothId);
+
+        return (
+          <div key={project.id} className="space-y-5">
+            <h3 className="text-lg font-semibold border-b border-border pb-2">{project.name}</h3>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <StatCard title="合同总额" value={`$${totalContract.toLocaleString()}`} icon={DollarSign} />
+              <StatCard title="总支出" value={`$${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={TrendingDown} variant="warning" />
+              <StatCard title="预计利润" value={`$${profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} subtitle={`利润率 ${((profit / totalContract) * 100).toFixed(1)}%`} icon={TrendingUp} variant={profit > 0 ? 'success' : 'destructive'} />
+              <StatCard title="待收款" value={`$${totalPending.toLocaleString()}`} subtitle={`已收 $${totalReceived.toLocaleString()}`} icon={Clock} variant="warning" />
+            </div>
+
+            {/* Payment tracking */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {project.booths.map(booth => (
+                <div key={booth.id} className="glass-card rounded-lg p-5">
+                  <PaymentTracker payments={booth.payments} clientName={booth.clientName} />
+                </div>
+              ))}
+            </div>
+
+            {/* Project-level expenses */}
+            <div className="glass-card rounded-lg p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold">项目开销</h4>
+                <AddExpenseDialog projectId={project.id} />
               </div>
-            ))}
-          </div>
+              <ExpenseBreakdown expenses={projectLevelExpenses} title="差旅 / 物料 / 人工" />
+            </div>
 
-          <div className="glass-card rounded-lg p-5">
-            <h4 className="font-semibold mb-3">最近开销</h4>
-            <ExpenseTable expenses={allExpenses.slice(0, 10)} />
+            {/* Booth-specific (三方) expenses */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {project.booths.map(booth => {
+                const bExpenses = boothExpenses(booth.id);
+                return (
+                  <div key={booth.id} className="glass-card rounded-lg p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold">{booth.clientName} 三方费用</h4>
+                      <AddExpenseDialog projectId={project.id} boothId={booth.id} />
+                    </div>
+                    {bExpenses.length > 0 ? (
+                      <ExpenseBreakdown expenses={bExpenses} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">暂无三方费用</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
