@@ -17,14 +17,17 @@ interface EmployeeDialogProps {
 const EmployeeDialog = ({ open, onOpenChange, employee, onSave, onDelete }: EmployeeDialogProps) => {
   const [name, setName] = useState('');
   const [dailyRate, setDailyRate] = useState('');
+  const [hourlyRate, setHourlyRate] = useState('');
 
   useEffect(() => {
     if (employee) {
       setName(employee.name);
       setDailyRate(String(employee.dailyRate ?? ''));
+      setHourlyRate(String(employee.hourlyRate ?? ''));
     } else {
       setName('');
       setDailyRate('');
+      setHourlyRate('');
     }
   }, [employee, open]);
 
@@ -35,12 +38,13 @@ const EmployeeDialog = ({ open, onOpenChange, employee, onSave, onDelete }: Empl
       name: name.trim(),
       role: 'employee',
       dailyRate: dailyRate ? Number(dailyRate) : undefined,
+      hourlyRate: hourlyRate ? Number(hourlyRate) : undefined,
     };
-    if (updated.name !== employee.name || updated.dailyRate !== employee.dailyRate) {
+    if (updated.name !== employee.name || updated.dailyRate !== employee.dailyRate || updated.hourlyRate !== employee.hourlyRate) {
       onSave(updated);
       toast.success('已自动保存');
     }
-  }, [employee, name, dailyRate, onSave]);
+  }, [employee, name, dailyRate, hourlyRate, onSave]);
 
   // Auto-save on close for existing employees
   const handleOpenChange = (isOpen: boolean) => {
@@ -57,6 +61,7 @@ const EmployeeDialog = ({ open, onOpenChange, employee, onSave, onDelete }: Empl
       name: name.trim(),
       role: 'employee',
       dailyRate: dailyRate ? Number(dailyRate) : undefined,
+      hourlyRate: hourlyRate ? Number(hourlyRate) : undefined,
     });
     onOpenChange(false);
     toast.success('员工已添加');
@@ -76,6 +81,10 @@ const EmployeeDialog = ({ open, onOpenChange, employee, onSave, onDelete }: Empl
           <div className="space-y-2">
             <Label>日薪 ($)</Label>
             <Input type="number" value={dailyRate} onChange={e => setDailyRate(e.target.value)} onBlur={employee ? autoSave : undefined} placeholder="每天工资" />
+          </div>
+          <div className="space-y-2">
+            <Label>时薪 ($)</Label>
+            <Input type="number" value={hourlyRate} onChange={e => setHourlyRate(e.target.value)} onBlur={employee ? autoSave : undefined} placeholder="每小时工资（可选）" />
           </div>
         </div>
         <DialogFooter className="flex-row justify-between sm:justify-between">
