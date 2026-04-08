@@ -78,11 +78,20 @@ const EmployeesPage = () => {
     setLogDate(log.date);
     setLogRate(String(log.dailyRate));
     setLogProject(log.projectId);
+    setLogRateType(log.rateType || 'daily');
+    setLogHours(log.hours ? String(log.hours) : '');
   };
 
   const saveEditLog = () => {
     if (!editingLog) return;
-    updateWorkLog({ ...editingLog, date: logDate, dailyRate: Number(logRate), projectId: logProject });
+    updateWorkLog({
+      ...editingLog,
+      date: logDate,
+      dailyRate: Number(logRate),
+      projectId: logProject,
+      rateType: logRateType,
+      hours: logRateType === 'hourly' ? Number(logHours) || 0 : undefined,
+    });
     setEditingLog(null);
     toast.success('工时已更新');
   };
