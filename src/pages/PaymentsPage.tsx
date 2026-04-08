@@ -1,10 +1,20 @@
+import { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import PaymentTracker from '@/components/PaymentTracker';
 import StatCard from '@/components/StatCard';
-import { DollarSign, CheckCircle, Clock } from 'lucide-react';
+import { DollarSign, CheckCircle, Clock, Upload, Loader2, Plus, FileText, Image } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Payment, PaymentStatus, Booth } from '@/types';
 
 const PaymentsPage = () => {
-  const { projects } = useApp();
+  const { projects, addPayment, updateBooth } = useApp();
   const allBooths = projects.flatMap(p => p.booths);
   const allPayments = allBooths.flatMap(b => b.payments);
 
@@ -12,11 +22,235 @@ const PaymentsPage = () => {
   const received = allPayments.filter(p => p.status === 'received').reduce((s, p) => s + p.amount, 0);
   const pending = allPayments.filter(p => p.status !== 'received').reduce((s, p) => s + p.amount, 0);
 
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedBoothId, setSelectedBoothId] = useState('');
+  const [paymentType, setPaymentType] = useState<'deposit' | 'balance'>('deposit');
+  const [amount, setAmount] = useState('');
+  const [status, setStatus] = useState<PaymentStatus>('pending');
+  const [invoiceDate, setInvoiceDate] = useState('');
+  const [notes, setNotes] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [documentUrl, setDocumentUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadAndAnalyze = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAnalyzing(true);
+    try {
+      // Upload to storage
+      setUploading(true);
+      const fileName = `contracts/${Date.now()}_${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('receipts')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('receipts')
+        .getPublicUrl(fileName);
+      
+      setDocumentUrl(urlData.publicUrl);
+      setUploading(false);
+
+      // Convert to base64 for AI
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64 = reader.result as string;
+          const { data, error } = await supabase.functions.invoke('analyze-contract', {
+            body: { imageBase64: base64 },
+          });
+
+          if (error) throw error;
+
+          if (data) {
+            if (data.totalContract && selectedBoothId) {
+              // Find booth and update contract amount if AI found one
+              const booth = allBooths.find(b => b.id === selectedBoothId);
+              if (booth && data.totalContract > 0) {
+                const project = projects.find(p => p.booths.some(b => b.id === selectedBoothId));
+                if (project) {
+                  updateBooth(project.id, { ...booth, totalContract: data.totalContract, contractUrl: urlData.publicUrl });
+                }
+              }
+            }
+            if (data.depositAmount > 0 && paymentType === 'deposit') {
+              setAmount(String(data.depositAmount));
+            } else if (data.balanceAmount > 0 && paymentType === 'balance') {
+              setAmount(String(data.balanceAmount));
+            } else if (data.depositAmount > 0) {
+              setAmount(String(data.depositAmount));
+            }
+            if (data.invoiceDate) setInvoiceDate(data.invoiceDate);
+            if (data.isReceived) setStatus('received');
+            else if (data.invoiceDate) setStatus('invoiced');
+            if (data.notes) setNotes(data.notes);
+            toast.success('AI识别完成');
+          }
+        } catch (err) {
+          console.error('AI analysis failed:', err);
+          toast.error('AI识别失败，请手动填写');
+        } finally {
+          setAnalyzing(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Upload failed:', err);
+      toast.error('上传失败');
+      setAnalyzing(false);
+      setUploading(false);
+    }
+  };
+
+  const handleAddPayment = () => {
+    if (!selectedBoothId || !amount) {
+      toast.error('请选择展位并填写金额');
+      return;
+    }
+    const payment: Payment = {
+      id: '',
+      boothId: selectedBoothId,
+      type: paymentType,
+      amount: Number(amount),
+      status,
+      invoiceDate: invoiceDate || undefined,
+      notes: notes || undefined,
+      documentUrl: documentUrl || undefined,
+    };
+    addPayment(selectedBoothId, payment);
+    toast.success('款项已添加');
+    resetForm();
+    setDialogOpen(false);
+  };
+
+  const resetForm = () => {
+    setSelectedBoothId('');
+    setPaymentType('deposit');
+    setAmount('');
+    setStatus('pending');
+    setInvoiceDate('');
+    setNotes('');
+    setDocumentUrl('');
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">收款追踪</h2>
-        <p className="text-muted-foreground text-sm">管理所有客户的收款进度</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">收款追踪</h2>
+          <p className="text-muted-foreground text-sm">管理所有客户的收款进度</p>
+        </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="h-4 w-4 mr-1" />添加款项</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>添加收款记录</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {/* Upload contract/invoice */}
+              <div className="space-y-2">
+                <Label>上传合同/Invoice（AI自动识别）</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleUploadAndAnalyze}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={analyzing}
+                >
+                  {analyzing ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />AI识别中...</>
+                  ) : uploading ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />上传中...</>
+                  ) : (
+                    <><Upload className="h-4 w-4 mr-2" />选择文件</>
+                  )}
+                </Button>
+                {documentUrl && (
+                  <div className="flex items-center gap-2 text-xs text-success">
+                    <FileText className="h-3 w-3" />
+                    <span>文件已上传</span>
+                    <a href={documentUrl} target="_blank" rel="noopener noreferrer" className="underline">查看</a>
+                  </div>
+                )}
+              </div>
+
+              {/* Booth select */}
+              <div className="space-y-2">
+                <Label>选择展位</Label>
+                <Select value={selectedBoothId} onValueChange={setSelectedBoothId}>
+                  <SelectTrigger><SelectValue placeholder="选择展位" /></SelectTrigger>
+                  <SelectContent>
+                    {projects.map(p => p.booths.map(b => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {p.name} - {b.clientName}
+                      </SelectItem>
+                    )))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Type */}
+              <div className="space-y-2">
+                <Label>类型</Label>
+                <Select value={paymentType} onValueChange={(v) => setPaymentType(v as 'deposit' | 'balance')}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="deposit">首款 (Deposit)</SelectItem>
+                    <SelectItem value="balance">尾款 (Balance)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Amount */}
+              <div className="space-y-2">
+                <Label>金额 ($)</Label>
+                <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" />
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <Label>状态</Label>
+                <Select value={status} onValueChange={(v) => setStatus(v as PaymentStatus)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">待处理</SelectItem>
+                    <SelectItem value="invoiced">已开票</SelectItem>
+                    <SelectItem value="received">已收款</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Invoice date */}
+              <div className="space-y-2">
+                <Label>Invoice 日期</Label>
+                <Input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} />
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label>备注</Label>
+                <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="备注信息" rows={2} />
+              </div>
+
+              <Button className="w-full" onClick={handleAddPayment}>
+                保存
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -32,6 +266,12 @@ const PaymentsPage = () => {
             {project.booths.map(booth => (
               <div key={booth.id} className="glass-card rounded-lg p-5">
                 <PaymentTracker payments={booth.payments} clientName={booth.clientName} />
+                {booth.contractUrl && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Image className="h-3 w-3" />
+                    <a href={booth.contractUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">查看合同</a>
+                  </div>
+                )}
               </div>
             ))}
           </div>

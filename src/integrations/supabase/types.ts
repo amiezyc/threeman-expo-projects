@@ -17,18 +17,21 @@ export type Database = {
       booths: {
         Row: {
           client_name: string
+          contract_url: string | null
           id: string
           project_id: string
           total_contract: number
         }
         Insert: {
           client_name: string
+          contract_url?: string | null
           id?: string
           project_id: string
           total_contract?: number
         }
         Update: {
           client_name?: string
+          contract_url?: string | null
           id?: string
           project_id?: string
           total_contract?: number
@@ -157,6 +160,7 @@ export type Database = {
         Row: {
           amount: number
           booth_id: string
+          document_url: string | null
           id: string
           invoice_date: string | null
           notes: string | null
@@ -167,6 +171,7 @@ export type Database = {
         Insert: {
           amount?: number
           booth_id: string
+          document_url?: string | null
           id?: string
           invoice_date?: string | null
           notes?: string | null
@@ -177,6 +182,7 @@ export type Database = {
         Update: {
           amount?: number
           booth_id?: string
+          document_url?: string | null
           id?: string
           invoice_date?: string | null
           notes?: string | null

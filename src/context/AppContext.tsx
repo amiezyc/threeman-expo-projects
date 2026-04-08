@@ -75,6 +75,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             projectId: b.project_id,
             clientName: b.client_name,
             totalContract: Number(b.total_contract),
+            contractUrl: b.contract_url || undefined,
             payments: paymentRows
               .filter((pay: any) => pay.booth_id === b.id)
               .map((pay: any) => ({
@@ -86,6 +87,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 invoiceDate: pay.invoice_date || undefined,
                 receivedDate: pay.received_date || undefined,
                 notes: pay.notes || undefined,
+                documentUrl: pay.document_url || undefined,
               })),
           }));
 
@@ -217,7 +219,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateBooth = async (projectId: string, booth: Booth) => {
     await supabase.from('booths').update({
-      client_name: booth.clientName, total_contract: booth.totalContract,
+      client_name: booth.clientName, total_contract: booth.totalContract, contract_url: booth.contractUrl || null,
     }).eq('id', booth.id);
     setProjects(prev => prev.map(p =>
       p.id === projectId ? { ...p, booths: p.booths.map(b => b.id === booth.id ? booth : b) } : p
@@ -415,6 +417,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       invoice_date: payment.invoiceDate || null,
       received_date: payment.receivedDate || null,
       notes: payment.notes || null,
+      document_url: payment.documentUrl || null,
     }).select().single();
     if (error) { toast.error('保存失败'); return; }
     const newPayment = { ...payment, id: data.id };
@@ -434,6 +437,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       invoice_date: payment.invoiceDate || null,
       received_date: payment.receivedDate || null,
       notes: payment.notes || null,
+      document_url: payment.documentUrl || null,
     }).eq('id', payment.id);
     setProjects(prev => prev.map(p => ({
       ...p,

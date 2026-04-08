@@ -63,6 +63,7 @@ export interface Payment {
   invoiceDate?: string;
   receivedDate?: string;
   notes?: string;
+  documentUrl?: string;
 }
 
 export interface Booth {
@@ -71,7 +72,9 @@ export interface Booth {
   clientName: string;
   totalContract: number;
   payments: Payment[];
+  contractUrl?: string;
 }
+
 
 export interface PartnerShare {
   name: string;
