@@ -25,11 +25,16 @@ const EmployeesPage = () => {
   const [logDate, setLogDate] = useState('');
   const [logRate, setLogRate] = useState('');
   const [logProject, setLogProject] = useState('');
+  const [logRateType, setLogRateType] = useState<RateType>('daily');
+  const [logHours, setLogHours] = useState('');
 
   // Multi-date add
   const [addingLog, setAddingLog] = useState(false);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [newLogProject, setNewLogProject] = useState(projects[0]?.id || '');
+  const [newLogRateType, setNewLogRateType] = useState<RateType>('daily');
+  const [newLogRate, setNewLogRate] = useState('');
+  const [newLogHours, setNewLogHours] = useState('');
 
   const employeeStats = employees.map(emp => {
     const workLogs = projects.flatMap(p => p.workLogs).filter(w => w.userId === emp.id);
