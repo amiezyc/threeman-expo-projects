@@ -29,6 +29,7 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
   const [receiptUrl, setReceiptUrl] = useState('');
   const [receiptPreview, setReceiptPreview] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const project = projects.find(p => p.id === projectId);
 
@@ -64,17 +65,38 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
     }
   };
 
-  const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadReceiptToStorage = async (file: File): Promise<string | null> => {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${projectId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('receipts').upload(path, file);
+    if (error) {
+      console.error('Upload failed:', error);
+      return null;
+    }
+    const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(path);
+    return urlData.publicUrl;
+  };
+
+  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Show preview immediately
     const reader = new FileReader();
     reader.onloadend = () => {
-      const result = reader.result as string;
-      setReceiptUrl(result);
-      setReceiptPreview(result);
-      analyzeReceipt(result);
+      const base64 = reader.result as string;
+      setReceiptPreview(base64);
+      analyzeReceipt(base64);
     };
     reader.readAsDataURL(file);
+
+    // Upload to storage
+    setUploading(true);
+    const url = await uploadReceiptToStorage(file);
+    if (url) {
+      setReceiptUrl(url);
+    }
+    setUploading(false);
   };
 
   const handleSubmit = () => {
@@ -112,12 +134,12 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
           <DialogTitle>添加开销</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
-          {/* Receipt upload - moved to top for AI auto-fill */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               收据/Receipt
               {analyzing && <span className="flex items-center gap-1 text-xs text-primary"><Loader2 className="h-3 w-3 animate-spin" />AI识别中...</span>}
-              {!analyzing && <span className="text-xs text-muted-foreground flex items-center gap-1"><Sparkles className="h-3 w-3" />上传后AI自动识别</span>}
+              {uploading && <span className="flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />上传中...</span>}
+              {!analyzing && !uploading && <span className="text-xs text-muted-foreground flex items-center gap-1"><Sparkles className="h-3 w-3" />上传后AI自动识别</span>}
             </Label>
             {receiptPreview ? (
               <div className="relative rounded-lg overflow-hidden border border-border">
@@ -186,7 +208,7 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
             <Input placeholder="开销说明..." value={description} onChange={e => setDescription(e.target.value)} />
           </div>
 
-          <Button className="w-full" onClick={handleSubmit} disabled={analyzing}>提交</Button>
+          <Button className="w-full" onClick={handleSubmit} disabled={analyzing || uploading}>提交</Button>
         </div>
       </DialogContent>
     </Dialog>
