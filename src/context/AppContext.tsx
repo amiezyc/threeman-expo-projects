@@ -74,7 +74,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ user, setUserRole, projects, addExpense, updateExpense, deleteExpense, addWorkLog, employees }}>
+    <AppContext.Provider value={{ user, setUserRole, projects, addExpense, updateExpense, deleteExpense, addWorkLog, employees: employeeList, addEmployee, updateEmployee, deleteEmployee }}>
       {children}
     </AppContext.Provider>
   );
