@@ -10,6 +10,8 @@ interface AppContextType {
   updateExpense: (expense: Expense) => void;
   deleteExpense: (projectId: string, expenseId: string) => void;
   addWorkLog: (workLog: WorkLog) => void;
+  updateWorkLog: (workLog: WorkLog) => void;
+  deleteWorkLog: (projectId: string, workLogId: string) => void;
   employees: User[];
   addEmployee: (employee: User) => void;
   updateEmployee: (employee: User) => void;
@@ -73,8 +75,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ));
   };
 
+  const updateWorkLog = (workLog: WorkLog) => {
+    setProjects(prev => prev.map(p =>
+      p.id === workLog.projectId
+        ? { ...p, workLogs: p.workLogs.map(w => w.id === workLog.id ? workLog : w) }
+        : p
+    ));
+  };
+
+  const deleteWorkLog = (projectId: string, workLogId: string) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? { ...p, workLogs: p.workLogs.filter(w => w.id !== workLogId) }
+        : p
+    ));
+  };
+
   return (
-    <AppContext.Provider value={{ user, setUserRole, projects, addExpense, updateExpense, deleteExpense, addWorkLog, employees: employeeList, addEmployee, updateEmployee, deleteEmployee }}>
+    <AppContext.Provider value={{ user, setUserRole, projects, addExpense, updateExpense, deleteExpense, addWorkLog, updateWorkLog, deleteWorkLog, employees: employeeList, addEmployee, updateEmployee, deleteEmployee }}>
       {children}
     </AppContext.Provider>
   );
