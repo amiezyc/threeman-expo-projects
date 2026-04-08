@@ -63,6 +63,16 @@ export interface Payment {
   invoiceDate?: string;
   receivedDate?: string;
   notes?: string;
+  documentUrl?: string;
+}
+
+export interface Booth {
+  id: string;
+  projectId: string;
+  clientName: string;
+  totalContract: number;
+  payments: Payment[];
+  contractUrl?: string;
 }
 
 export interface Booth {
