@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { Project, User, Expense, WorkLog, UserRole } from '@/types';
-import { mockProjects, currentUser, employees } from '@/data/mockData';
+import { mockProjects, currentUser, employees as initialEmployees } from '@/data/mockData';
 
 interface AppContextType {
   user: User;
