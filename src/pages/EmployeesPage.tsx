@@ -103,6 +103,8 @@ const EmployeesPage = () => {
 
   const handleAddLogs = () => {
     if (!workLogEmployee || !newLogProject || selectedDates.length === 0) return;
+    const rate = Number(newLogRate) || (newLogRateType === 'hourly' ? (workLogEmployee.hourlyRate || 25) : (workLogEmployee.dailyRate || 250));
+    const hours = newLogRateType === 'hourly' ? (Number(newLogHours) || 0) : undefined;
     selectedDates.forEach(date => {
       addWorkLog({
         id: `wl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -110,11 +112,15 @@ const EmployeesPage = () => {
         userId: workLogEmployee.id,
         userName: workLogEmployee.name,
         date: format(date, 'yyyy-MM-dd'),
-        dailyRate: workLogEmployee.dailyRate || 250,
+        dailyRate: rate,
+        rateType: newLogRateType,
+        hours,
       });
     });
     setAddingLog(false);
     setSelectedDates([]);
+    setNewLogRate('');
+    setNewLogHours('');
     toast.success(`已添加 ${selectedDates.length} 天工时`);
   };
 
