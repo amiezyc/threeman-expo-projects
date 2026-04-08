@@ -11,6 +11,9 @@ interface AppContextType {
   deleteExpense: (projectId: string, expenseId: string) => void;
   addWorkLog: (workLog: WorkLog) => void;
   employees: User[];
+  addEmployee: (employee: User) => void;
+  updateEmployee: (employee: User) => void;
+  deleteEmployee: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
