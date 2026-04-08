@@ -41,6 +41,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ));
   };
 
+  const updateExpense = (expense: Expense) => {
+    setProjects(prev => prev.map(p =>
+      p.id === expense.projectId
+        ? { ...p, expenses: p.expenses.map(e => e.id === expense.id ? expense : e) }
+        : p
+    ));
+  };
+
+  const deleteExpense = (projectId: string, expenseId: string) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? { ...p, expenses: p.expenses.filter(e => e.id !== expenseId) }
+        : p
+    ));
+  };
+
   const addWorkLog = (workLog: WorkLog) => {
     setProjects(prev => prev.map(p =>
       p.id === workLog.projectId
@@ -50,7 +66,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ user, setUserRole, projects, addExpense, addWorkLog, employees }}>
+    <AppContext.Provider value={{ user, setUserRole, projects, addExpense, updateExpense, deleteExpense, addWorkLog, employees }}>
       {children}
     </AppContext.Provider>
   );
