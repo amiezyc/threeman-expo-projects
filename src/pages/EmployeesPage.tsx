@@ -7,10 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
-import { Users, Plus, Pencil, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
+import { Users, Plus, Pencil, Calendar as CalendarIcon, Trash2, Clock } from 'lucide-react';
 import StatCard from '@/components/StatCard';
 import EmployeeDialog from '@/components/EmployeeDialog';
-import { User, WorkLog } from '@/types';
+import { User, WorkLog, RateType } from '@/types';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 
