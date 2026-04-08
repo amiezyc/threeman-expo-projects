@@ -40,7 +40,7 @@ const EmployeesPage = () => {
     const workLogs = projects.flatMap(p => p.workLogs).filter(w => w.userId === emp.id);
     const expenses = projects.flatMap(p => p.expenses).filter(e => e.paidBy === emp.name);
     const totalDays = workLogs.length;
-    const totalPay = workLogs.reduce((s, w) => s + w.dailyRate, 0);
+    const totalPay = workLogs.reduce((s, w) => s + (w.rateType === 'hourly' ? w.dailyRate * (w.hours || 0) : w.dailyRate), 0);
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
     return { ...emp, totalDays, totalPay, totalExpenses, workLogs };
   });
