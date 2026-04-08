@@ -287,13 +287,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ));
   };
 
-  // === Sync labor expenses from work logs ===
-  const syncLaborExpenses = async (projectId: string, updatedProjects?: Project[]) => {
-    const source = updatedProjects || projects;
-    const project = source.find(p => p.id === projectId);
-    if (!project) return;
-
-    // Group work logs by employee
+  // === Sync labor expenses from work logs, returns updated project (single setProjects call) ===
+  const syncLaborExpenses = async (project: Project): Promise<Project> => {
     const byEmployee = new Map<string, { userName: string; total: number }>();
     project.workLogs.forEach(w => {
       const existing = byEmployee.get(w.userId) || { userName: w.userName, total: 0 };
@@ -302,7 +297,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       byEmployee.set(w.userId, existing);
     });
 
-    // Get existing auto-generated labor expenses for this project
     const existingLaborExpenses = project.expenses.filter(
       e => e.mainCategory === '人工' && e.subCategory.startsWith('auto:')
     );
@@ -314,7 +308,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const existing = existingLaborExpenses.find(e => e.subCategory === subCat);
 
       if (info.total <= 0) {
-        // Remove if total is 0
         if (existing) {
           await supabase.from('expenses').delete().eq('id', existing.id);
           updatedExpenses = updatedExpenses.filter(e => e.id !== existing.id);
@@ -323,7 +316,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       if (existing) {
-        // Only update if amount changed
         if (existing.amount !== info.total) {
           await supabase.from('expenses').update({ amount: info.total }).eq('id', existing.id);
           updatedExpenses = updatedExpenses.map(e =>
@@ -331,9 +323,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           );
         }
       } else {
-        // Insert new
         const { data, error } = await supabase.from('expenses').insert({
-          project_id: projectId,
+          project_id: project.id,
           booth_id: null,
           paid_by: 'Ami',
           main_category: '人工',
@@ -345,7 +336,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!error && data) {
           updatedExpenses.push({
             id: data.id,
-            projectId,
+            projectId: project.id,
             paidBy: 'Ami',
             mainCategory: '人工' as any,
             subCategory: subCat as any,
@@ -357,7 +348,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    // Remove auto expenses for employees no longer in work logs
     for (const exp of existingLaborExpenses) {
       const userId = exp.subCategory.replace('auto:', '');
       if (!byEmployee.has(userId)) {
@@ -366,9 +356,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    setProjects(prev => prev.map(p =>
-      p.id === projectId ? { ...p, expenses: updatedExpenses } : p
-    ));
+    return { ...project, expenses: updatedExpenses };
   };
 
   // === Work Logs ===
@@ -385,11 +373,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }).select().single();
     if (error) { toast.error('保存失败'); return; }
     const newLog = { ...workLog, id: data.id };
-    const updated = projects.map(p =>
-      p.id === workLog.projectId ? { ...p, workLogs: [...p.workLogs, newLog] } : p
-    );
-    setProjects(updated);
-    await syncLaborExpenses(workLog.projectId, updated);
+    let project = projects.find(p => p.id === workLog.projectId);
+    if (!project) return;
+    project = { ...project, workLogs: [...project.workLogs, newLog] };
+    const synced = await syncLaborExpenses(project);
+    setProjects(prev => prev.map(p => p.id === synced.id ? synced : p));
   };
 
   const updateWorkLog = async (workLog: WorkLog) => {
@@ -401,20 +389,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       rate_type: workLog.rateType || 'daily',
       hours: workLog.hours || null,
     }).eq('id', workLog.id);
-    const updated = projects.map(p =>
-      p.id === workLog.projectId ? { ...p, workLogs: p.workLogs.map(w => w.id === workLog.id ? workLog : w) } : p
-    );
-    setProjects(updated);
-    await syncLaborExpenses(workLog.projectId, updated);
+    let project = projects.find(p => p.id === workLog.projectId);
+    if (!project) return;
+    project = { ...project, workLogs: project.workLogs.map(w => w.id === workLog.id ? workLog : w) };
+    const synced = await syncLaborExpenses(project);
+    setProjects(prev => prev.map(p => p.id === synced.id ? synced : p));
   };
 
   const deleteWorkLog = async (projectId: string, workLogId: string) => {
     await supabase.from('work_logs').delete().eq('id', workLogId);
-    const updated = projects.map(p =>
-      p.id === projectId ? { ...p, workLogs: p.workLogs.filter(w => w.id !== workLogId) } : p
-    );
-    setProjects(updated);
-    await syncLaborExpenses(projectId, updated);
+    let project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    project = { ...project, workLogs: project.workLogs.filter(w => w.id !== workLogId) };
+    const synced = await syncLaborExpenses(project);
+    setProjects(prev => prev.map(p => p.id === synced.id ? synced : p));
   };
 
   // === Payments ===
