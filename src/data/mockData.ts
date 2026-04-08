@@ -64,11 +64,6 @@ export const mockProjects: Project[] = [
       { id: 'e17', projectId: 'proj-1', boothId: 'booth-1', paidBy: 'Ami', mainCategory: '三方', subCategory: '布/吊顶过磅', amount: 401.76, description: 'Itech布/吊顶过磅', date: '2026-03-14' },
       { id: 'e18', projectId: 'proj-1', boothId: 'booth-1', paidBy: 'Ami', mainCategory: '三方', subCategory: '电费', amount: 1012, description: 'Itech电费', date: '2026-03-15' },
       { id: 'e19', projectId: 'proj-1', boothId: 'booth-2', paidBy: 'Ami', mainCategory: '三方', subCategory: '电费', amount: 164, description: 'Kewell电费', date: '2026-03-15' },
-      { id: 'e20', projectId: 'proj-1', paidBy: 'Kyle', mainCategory: '差旅', subCategory: 'Gas', amount: 580, description: 'Kyle加油', date: '2026-03-08' },
-      { id: 'e21', projectId: 'proj-1', paidBy: 'Kyle', mainCategory: '差旅', subCategory: '餐補', amount: 320, description: 'Kyle餐费', date: '2026-03-10' },
-      { id: 'e22', projectId: 'proj-1', paidBy: 'Kyle', mainCategory: '差旅', subCategory: 'Uber', amount: 180, description: 'Kyle Uber', date: '2026-03-09' },
-      { id: 'e23', projectId: 'proj-1', paidBy: 'Kyle', mainCategory: '差旅', subCategory: 'Parking', amount: 65, description: 'Kyle停车', date: '2026-03-11' },
-      { id: 'e24', projectId: 'proj-1', paidBy: 'Kyle', mainCategory: '差旅', subCategory: 'Hotel', amount: 429.16, description: 'Kyle酒店', date: '2026-03-06' },
     ],
     workLogs: [
       { id: 'wl-1', projectId: 'proj-1', userId: 'emp-2', userName: 'Hao', date: '2026-03-10', dailyRate: 250 },
