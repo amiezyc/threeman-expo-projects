@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '@/context/AppContext';
+import { useAuth } from '@/context/AuthContext';
 import { ExpenseMainCategory, ExpenseSubCategory, Expense, categoryStructure } from '@/types';
 import { Plus, Upload, X, Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
