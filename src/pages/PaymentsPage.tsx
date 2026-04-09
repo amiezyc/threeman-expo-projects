@@ -277,7 +277,7 @@ const PaymentsPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {project.booths.map(booth => (
               <div key={booth.id} className="glass-card rounded-lg p-5">
-                <PaymentTracker payments={booth.payments} clientName={booth.clientName} />
+                <PaymentTracker payments={booth.payments} clientName={booth.clientName} onUpdatePayment={updatePayment} onDeletePayment={deletePayment} />
                 {booth.contractUrl && (
                   <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                     <Image className="h-3 w-3" />
