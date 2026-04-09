@@ -1,18 +1,20 @@
-import { useState, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import PaymentTracker from '@/components/PaymentTracker';
 import StatCard from '@/components/StatCard';
-import { DollarSign, CheckCircle, Clock, Upload, Loader2, Plus, FileText, Image, Sparkles } from 'lucide-react';
+import { DollarSign, CheckCircle, Clock, Upload, Loader2, Plus, FileText, Image, Sparkles, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { uploadFile } from '@/lib/uploadFile';
 import { toast } from 'sonner';
 import { Payment, PaymentStatus, Booth } from '@/types';
+import { cn } from '@/lib/utils';
 
 const PaymentsPage = () => {
   const { projects, addPayment, updateBooth, updatePayment, deletePayment } = useApp();
@@ -22,6 +24,25 @@ const PaymentsPage = () => {
   const totalAmount = allPayments.reduce((s, p) => s + p.amount, 0);
   const received = allPayments.filter(p => p.status === 'received').reduce((s, p) => s + p.amount, 0);
   const pending = allPayments.filter(p => p.status !== 'received').reduce((s, p) => s + p.amount, 0);
+
+  // Collapsible state: default collapsed, auto-collapse if all deposit+balance received
+  const [openProjects, setOpenProjects] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    projects.forEach(p => {
+      const allPaid = p.booths.every(b => {
+        const hasDeposit = b.payments.some(pay => pay.type === 'deposit' && pay.status === 'received');
+        const hasBalance = b.payments.some(pay => pay.type === 'balance' && pay.status === 'received');
+        return b.payments.length > 0 && hasDeposit && hasBalance;
+      });
+      initial[p.id] = !allPaid; // collapsed if all paid, open otherwise — but default collapsed
+      initial[p.id] = false; // default all collapsed
+    });
+    return initial;
+  });
+
+  const toggleProject = (id: string) => {
+    setOpenProjects(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedBoothId, setSelectedBoothId] = useState('');
@@ -36,11 +57,9 @@ const PaymentsPage = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Upload only — no auto OCR
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     try {
       const { url } = await uploadFile('receipts', 'contracts', file);
@@ -55,7 +74,6 @@ const PaymentsPage = () => {
     }
   };
 
-  // Manual OCR trigger
   const handleExtract = async () => {
     if (!uploadedFile) { toast.error('请先上传文件'); return; }
     setAnalyzing(true);
@@ -89,7 +107,7 @@ const PaymentsPage = () => {
             if (data.isReceived) setStatus('received');
             else if (data.invoiceDate) setStatus('invoiced');
             if (data.notes) setNotes(data.notes);
-            toast.success('AI识别完成');
+            toast.success('AI识别完成，请确认信息后保存');
           }
         } catch (err) {
           console.error('AI analysis failed:', err);
@@ -153,40 +171,15 @@ const PaymentsPage = () => {
               <DialogTitle>添加收款记录</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              {/* Upload contract/invoice */}
               <div className="space-y-2">
                 <Label>上传合同/Invoice</Label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={handleUpload}
-                  className="hidden"
-                />
+                <input ref={fileInputRef} type="file" accept="image/*,.pdf" onChange={handleUpload} className="hidden" />
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                  >
-                    {uploading ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />上传中...</>
-                    ) : (
-                      <><Upload className="h-4 w-4 mr-2" />选择文件</>
-                    )}
+                  <Button variant="outline" className="flex-1" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                    {uploading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />上传中...</> : <><Upload className="h-4 w-4 mr-2" />选择文件</>}
                   </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={handleExtract}
-                    disabled={!uploadedFile || analyzing}
-                    title="AI自动识别合同/Invoice信息"
-                  >
-                    {analyzing ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-4 w-4" />
-                    )}
+                  <Button variant="secondary" onClick={handleExtract} disabled={!uploadedFile || analyzing} title="AI自动识别合同/Invoice信息">
+                    {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                     <span className="ml-1">识别</span>
                   </Button>
                 </div>
@@ -198,23 +191,17 @@ const PaymentsPage = () => {
                   </div>
                 )}
               </div>
-
-              {/* Booth select */}
               <div className="space-y-2">
                 <Label>选择展位</Label>
                 <Select value={selectedBoothId} onValueChange={setSelectedBoothId}>
                   <SelectTrigger><SelectValue placeholder="选择展位" /></SelectTrigger>
                   <SelectContent>
                     {projects.map(p => p.booths.map(b => (
-                      <SelectItem key={b.id} value={b.id}>
-                        {p.name} - {b.clientName}
-                      </SelectItem>
+                      <SelectItem key={b.id} value={b.id}>{p.name} - {b.clientName}</SelectItem>
                     )))}
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Type */}
               <div className="space-y-2">
                 <Label>类型</Label>
                 <Select value={paymentType} onValueChange={(v) => setPaymentType(v as 'deposit' | 'balance')}>
@@ -225,14 +212,10 @@ const PaymentsPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Amount */}
               <div className="space-y-2">
                 <Label>金额 ($)</Label>
                 <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" />
               </div>
-
-              {/* Status */}
               <div className="space-y-2">
                 <Label>状态</Label>
                 <Select value={status} onValueChange={(v) => setStatus(v as PaymentStatus)}>
@@ -244,22 +227,15 @@ const PaymentsPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Invoice date */}
               <div className="space-y-2">
                 <Label>Invoice 日期</Label>
                 <Input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} />
               </div>
-
-              {/* Notes */}
               <div className="space-y-2">
                 <Label>备注</Label>
                 <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="备注信息" rows={2} />
               </div>
-
-              <Button className="w-full" onClick={handleAddPayment}>
-                保存
-              </Button>
+              <Button className="w-full" onClick={handleAddPayment}>保存</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -271,24 +247,41 @@ const PaymentsPage = () => {
         <StatCard title="待收款" value={`$${pending.toLocaleString()}`} icon={Clock} variant="warning" />
       </div>
 
-      {projects.map(project => (
-        <div key={project.id} className="space-y-4">
-          <h3 className="text-lg font-semibold border-b border-border pb-2">{project.name}</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {project.booths.map(booth => (
-              <div key={booth.id} className="glass-card rounded-lg p-5">
-                <PaymentTracker payments={booth.payments} clientName={booth.clientName} onUpdatePayment={updatePayment} onDeletePayment={deletePayment} />
-                {booth.contractUrl && (
-                  <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                    <Image className="h-3 w-3" />
-                    <a href={booth.contractUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">查看合同</a>
-                  </div>
-                )}
+      {projects.map(project => {
+        const isOpen = openProjects[project.id] ?? false;
+        const allPaid = project.booths.length > 0 && project.booths.every(b => {
+          const hasDeposit = b.payments.some(pay => pay.type === 'deposit' && pay.status === 'received');
+          const hasBalance = b.payments.some(pay => pay.type === 'balance' && pay.status === 'received');
+          return b.payments.length > 0 && hasDeposit && hasBalance;
+        });
+
+        return (
+          <Collapsible key={project.id} open={isOpen} onOpenChange={() => toggleProject(project.id)}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between border-b border-border pb-2 cursor-pointer hover:bg-muted/30 rounded px-2 py-1 transition-colors">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold">{project.name}</h3>
+                {allPaid && <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full">全部已收</span>}
               </div>
-            ))}
-          </div>
-        </div>
-      ))}
+              <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {project.booths.map(booth => (
+                  <div key={booth.id} className="glass-card rounded-lg p-5">
+                    <PaymentTracker payments={booth.payments} clientName={booth.clientName} onUpdatePayment={updatePayment} onDeletePayment={deletePayment} />
+                    {booth.contractUrl && (
+                      <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                        <Image className="h-3 w-3" />
+                        <a href={booth.contractUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">查看合同</a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      })}
     </div>
   );
 };
