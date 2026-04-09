@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,7 @@ import { toast } from 'sonner';
 import { Loader2, KeyRound } from 'lucide-react';
 
 const ChangePasswordDialog = () => {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -23,10 +25,12 @@ const ChangePasswordDialog = () => {
     if (error) {
       toast.error(error.message || '修改失败');
     } else {
-      toast.success('密码已修改');
+      toast.success('密码已修改，请重新登录');
       setPassword('');
       setConfirm('');
       setOpen(false);
+      await supabase.auth.signOut();
+      navigate('/login');
     }
   };
 

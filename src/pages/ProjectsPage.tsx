@@ -5,7 +5,9 @@ import AddExpenseDialog from '@/components/AddExpenseDialog';
 import ProfitSharing from '@/components/ProfitSharing';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatCard from '@/components/StatCard';
-import { DollarSign, TrendingDown, PieChart, Plus, Trash2, Pencil, Check, X } from 'lucide-react';
+import { DollarSign, TrendingDown, PieChart, Plus, Trash2, Pencil, Check, X, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -15,6 +17,8 @@ import { toast } from 'sonner';
 
 const ProjectsPage = () => {
   const { projects, addProject, updateProject, deleteProject, addBooth, updateBooth, deleteBooth, updatePartners } = useApp();
+  const [openProjects, setOpenProjects] = useState<Record<string, boolean>>({});
+  const toggleProject = (id: string) => setOpenProjects(prev => ({ ...prev, [id]: !prev[id] }));
 
   // Add project dialog
   const [addProjectOpen, setAddProjectOpen] = useState(false);
@@ -114,10 +118,14 @@ const ProjectsPage = () => {
         const sharedExpenses = project.expenses.filter(e => !e.boothId && ['差旅', '物料', '人工'].includes(e.mainCategory));
         const sharedTotal = sharedExpenses.reduce((s, e) => s + e.amount, 0);
 
+        const isOpen = openProjects[project.id] ?? false;
         return (
-          <div key={project.id} className="space-y-4">
+          <Collapsible key={project.id} open={isOpen} onOpenChange={() => toggleProject(project.id)} className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">{project.name}</h3>
+              <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:bg-muted/30 rounded px-2 py-1 transition-colors">
+                <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
+                <h3 className="text-lg font-semibold">{project.name}</h3>
+              </CollapsibleTrigger>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => openEditPartners(project)} className="gap-1">
                   <Pencil className="h-3 w-3" /> 合伙人
@@ -130,6 +138,7 @@ const ProjectsPage = () => {
                 </Button>
               </div>
             </div>
+            <CollapsibleContent>
 
             <Tabs defaultValue="all">
               <TabsList>
@@ -256,7 +265,8 @@ const ProjectsPage = () => {
                 );
               })}
             </Tabs>
-          </div>
+            </CollapsibleContent>
+          </Collapsible>
         );
       })}
 
