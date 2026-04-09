@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Receipt, Users, FolderOpen, UserPlus, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 
 const AppSidebar = () => {
   const { profile, isAdmin, signOut } = useAuth();
@@ -52,6 +53,7 @@ const AppSidebar = () => {
             </button>
           );
         })}
+        <ChangePasswordDialog />
       </nav>
 
       <div className="p-3 border-t border-sidebar-border">

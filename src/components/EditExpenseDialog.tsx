@@ -47,14 +47,14 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
     reader.onloadend = () => setReceiptPreview(reader.result as string);
     reader.readAsDataURL(file);
 
-    // Upload to storage
+    // Upload to storage with UUID name
     setUploading(true);
-    const ext = file.name.split('.').pop() || 'jpg';
-    const path = `${expense.projectId}/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('receipts').upload(path, file);
-    if (!error) {
-      const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(path);
-      setReceiptUrl(urlData.publicUrl);
+    try {
+      const { uploadFile } = await import('@/lib/uploadFile');
+      const { url } = await uploadFile('receipts', expense.projectId, file);
+      setReceiptUrl(url);
+    } catch (err) {
+      console.error('Upload failed:', err);
     }
     setUploading(false);
   };

@@ -68,15 +68,14 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
   };
 
   const uploadReceiptToStorage = async (file: File): Promise<string | null> => {
-    const ext = file.name.split('.').pop() || 'jpg';
-    const path = `${projectId}/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('receipts').upload(path, file);
-    if (error) {
+    try {
+      const { uploadFile } = await import('@/lib/uploadFile');
+      const { url } = await uploadFile('receipts', projectId, file);
+      return url;
+    } catch (error) {
       console.error('Upload failed:', error);
       return null;
     }
-    const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(path);
-    return urlData.publicUrl;
   };
 
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

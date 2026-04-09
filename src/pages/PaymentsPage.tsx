@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import PaymentTracker from '@/components/PaymentTracker';
 import StatCard from '@/components/StatCard';
-import { DollarSign, CheckCircle, Clock, Upload, Loader2, Plus, FileText, Image } from 'lucide-react';
+import { DollarSign, CheckCircle, Clock, Upload, Loader2, Plus, FileText, Image, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
+import { uploadFile } from '@/lib/uploadFile';
 import { toast } from 'sonner';
 import { Payment, PaymentStatus, Booth } from '@/types';
 
@@ -32,31 +33,33 @@ const PaymentsPage = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [documentUrl, setDocumentUrl] = useState('');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUploadAndAnalyze = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload only — no auto OCR
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setUploading(true);
+    try {
+      const { url } = await uploadFile('receipts', 'contracts', file);
+      setDocumentUrl(url);
+      setUploadedFile(file);
+      toast.success('文件已上传');
+    } catch (err) {
+      console.error('Upload failed:', err);
+      toast.error('上传失败');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Manual OCR trigger
+  const handleExtract = async () => {
+    if (!uploadedFile) { toast.error('请先上传文件'); return; }
     setAnalyzing(true);
     try {
-      // Upload to storage
-      setUploading(true);
-      const fileName = `contracts/${Date.now()}_${file.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('receipts')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('receipts')
-        .getPublicUrl(fileName);
-      
-      setDocumentUrl(urlData.publicUrl);
-      setUploading(false);
-
-      // Convert to base64 for AI
       const reader = new FileReader();
       reader.onload = async () => {
         try {
@@ -64,17 +67,14 @@ const PaymentsPage = () => {
           const { data, error } = await supabase.functions.invoke('analyze-contract', {
             body: { imageBase64: base64 },
           });
-
           if (error) throw error;
-
           if (data) {
             if (data.totalContract && selectedBoothId) {
-              // Find booth and update contract amount if AI found one
               const booth = allBooths.find(b => b.id === selectedBoothId);
               if (booth && data.totalContract > 0) {
                 const project = projects.find(p => p.booths.some(b => b.id === selectedBoothId));
                 if (project) {
-                  updateBooth(project.id, { ...booth, totalContract: data.totalContract, contractUrl: urlData.publicUrl });
+                  updateBooth(project.id, { ...booth, totalContract: data.totalContract, contractUrl: documentUrl });
                 }
               }
             }
@@ -98,12 +98,10 @@ const PaymentsPage = () => {
           setAnalyzing(false);
         }
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(uploadedFile);
     } catch (err) {
-      console.error('Upload failed:', err);
-      toast.error('上传失败');
+      toast.error('识别失败');
       setAnalyzing(false);
-      setUploading(false);
     }
   };
 
@@ -136,6 +134,7 @@ const PaymentsPage = () => {
     setInvoiceDate('');
     setNotes('');
     setDocumentUrl('');
+    setUploadedFile(null);
   };
 
   return (
@@ -156,28 +155,41 @@ const PaymentsPage = () => {
             <div className="space-y-4">
               {/* Upload contract/invoice */}
               <div className="space-y-2">
-                <Label>上传合同/Invoice（AI自动识别）</Label>
+                <Label>上传合同/Invoice</Label>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*,.pdf"
-                  onChange={handleUploadAndAnalyze}
+                  onChange={handleUpload}
                   className="hidden"
                 />
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={analyzing}
-                >
-                  {analyzing ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />AI识别中...</>
-                  ) : uploading ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />上传中...</>
-                  ) : (
-                    <><Upload className="h-4 w-4 mr-2" />选择文件</>
-                  )}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />上传中...</>
+                    ) : (
+                      <><Upload className="h-4 w-4 mr-2" />选择文件</>
+                    )}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={handleExtract}
+                    disabled={!uploadedFile || analyzing}
+                    title="AI自动识别合同/Invoice信息"
+                  >
+                    {analyzing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    <span className="ml-1">识别</span>
+                  </Button>
+                </div>
                 {documentUrl && (
                   <div className="flex items-center gap-2 text-xs text-success">
                     <FileText className="h-3 w-3" />
