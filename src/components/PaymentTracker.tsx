@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import { Payment } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Clock, FileText, Paperclip } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Clock, FileText, Paperclip, Pencil, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import EditPaymentDialog from '@/components/EditPaymentDialog';
 
 const statusConfig = {
   received: { label: '已收款', icon: CheckCircle, variant: 'default' as const, className: 'bg-success/10 text-success border-success/20' },
@@ -11,11 +15,16 @@ const statusConfig = {
 interface PaymentTrackerProps {
   payments: Payment[];
   clientName: string;
+  onUpdatePayment?: (payment: Payment) => void;
+  onDeletePayment?: (boothId: string, paymentId: string) => void;
 }
 
-const PaymentTracker = ({ payments, clientName }: PaymentTrackerProps) => {
+const PaymentTracker = ({ payments, clientName, onUpdatePayment, onDeletePayment }: PaymentTrackerProps) => {
   const totalReceived = payments.filter(p => p.status === 'received').reduce((s, p) => s + p.amount, 0);
   const totalPending = payments.filter(p => p.status !== 'received').reduce((s, p) => s + p.amount, 0);
+
+  const [editPayment, setEditPayment] = useState<Payment | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Payment | null>(null);
 
   return (
     <div className="space-y-3">
@@ -50,11 +59,53 @@ const PaymentTracker = ({ payments, clientName }: PaymentTrackerProps) => {
                 )}
                 {payment.notes && <span className="text-xs text-muted-foreground max-w-[200px] truncate">{payment.notes}</span>}
                 <Badge className={config.className}>{config.label}</Badge>
+                {onUpdatePayment && (
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditPayment(payment)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {onDeletePayment && (
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget(payment)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {editPayment && onUpdatePayment && (
+        <EditPaymentDialog
+          payment={editPayment}
+          open={!!editPayment}
+          onOpenChange={(open) => { if (!open) setEditPayment(null); }}
+          onSave={(updated) => {
+            onUpdatePayment(updated);
+            setEditPayment(null);
+          }}
+        />
+      )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除这笔{deleteTarget?.type === 'deposit' ? '首款' : '尾款'} ${deleteTarget?.amount.toLocaleString()} 吗？此操作不可撤销。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (deleteTarget && onDeletePayment) {
+                onDeletePayment(deleteTarget.boothId, deleteTarget.id);
+                setDeleteTarget(null);
+              }
+            }}>删除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
