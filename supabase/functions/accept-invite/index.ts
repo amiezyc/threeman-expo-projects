@@ -63,10 +63,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Sign in the user with the new password to get a session
+    const anonClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!);
+    const { data: signInData, error: signInError } = await anonClient.auth.signInWithPassword({
+      email: user.email!,
+      password,
+    });
+
     return new Response(JSON.stringify({
       success: true,
       email: user.email,
       role: user.user_metadata?.role || 'employee',
+      session: signInData?.session || null,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

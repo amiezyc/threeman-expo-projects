@@ -14,7 +14,6 @@ const AcceptInvitePage = () => {
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Extract token from URL hash or query params
   const token = useMemo(() => {
     const hash = window.location.hash;
     const params = new URLSearchParams(hash.replace('#', ''));
@@ -37,8 +36,19 @@ const AcceptInvitePage = () => {
       return;
     }
 
-    toast.success('密码设置成功，请登录');
-    navigate('/login');
+    // Set session from returned data so user is immediately signed in
+    if (data?.session) {
+      await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
+      toast.success('密码设置成功，已自动登录');
+      const role = data.role || 'employee';
+      navigate(role === 'admin' ? '/admin' : '/employee');
+    } else {
+      toast.success('密码设置成功，请登录');
+      navigate('/login');
+    }
   };
 
   if (!token) {
