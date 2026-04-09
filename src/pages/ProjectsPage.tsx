@@ -265,7 +265,8 @@ const ProjectsPage = () => {
                 );
               })}
             </Tabs>
-          </div>
+            </CollapsibleContent>
+          </Collapsible>
         );
       })}
 
