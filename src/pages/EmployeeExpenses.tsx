@@ -1,10 +1,11 @@
+import { useAuth } from '@/context/AuthContext';
 import { useApp } from '@/context/AppContext';
 import ExpenseBreakdown from '@/components/ExpenseBreakdown';
 import AddExpenseDialog from '@/components/AddExpenseDialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const EmployeeExpenses = () => {
-  const { user, projects } = useApp();
+  const { profile } = useAuth();
+  const { projects } = useApp();
 
   return (
     <div className="space-y-6">
@@ -14,7 +15,7 @@ const EmployeeExpenses = () => {
       </div>
 
       {projects.map(project => {
-        const myExpenses = project.expenses.filter(e => e.paidBy === user.name);
+        const myExpenses = project.expenses.filter(e => e.paidBy === profile?.name);
         const myTotal = myExpenses.reduce((s, e) => s + e.amount, 0);
 
         return (

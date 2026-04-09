@@ -107,7 +107,7 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
       id: `exp-${Date.now()}`,
       projectId,
       boothId: mainCategory === '三方' ? selectedBooth : undefined,
-      paidBy: user.name,
+      paidBy: profile?.name || '',
       mainCategory,
       subCategory,
       amount: parseFloat(amount),
