@@ -1,13 +1,20 @@
+import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import StatCard from '@/components/StatCard';
 import PaymentTracker from '@/components/PaymentTracker';
 import ExpenseBreakdown from '@/components/ExpenseBreakdown';
 import AddExpenseDialog from '@/components/AddExpenseDialog';
 import ProfitSharing from '@/components/ProfitSharing';
-import { DollarSign, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DollarSign, TrendingUp, TrendingDown, Clock, ChevronDown } from 'lucide-react';
 
 const Dashboard = () => {
   const { projects } = useApp();
+  const [openProjects, setOpenProjects] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(projects.map(p => [p.id, true]))
+  );
+
+  const toggle = (id: string) => setOpenProjects(prev => ({ ...prev, [id]: !prev[id] }));
 
   return (
     <div className="space-y-6">
@@ -27,8 +34,12 @@ const Dashboard = () => {
         const projectLevelExpenses = project.expenses.filter(e => !e.boothId);
 
         return (
-          <div key={project.id} className="space-y-5">
-            <h3 className="text-lg font-semibold border-b border-border pb-2">{project.name}</h3>
+          <Collapsible key={project.id} open={openProjects[project.id] !== false} onOpenChange={() => toggle(project.id)}>
+            <div className="space-y-5">
+              <CollapsibleTrigger className="flex items-center justify-between w-full border-b border-border pb-2 cursor-pointer hover:opacity-80">
+                <h3 className="text-lg font-semibold">{project.name}</h3>
+                <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${openProjects[project.id] !== false ? 'rotate-180' : ''}`} />
+              </CollapsibleTrigger>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <StatCard title="合同总额" value={`$${totalContract.toLocaleString()}`} icon={DollarSign} />
