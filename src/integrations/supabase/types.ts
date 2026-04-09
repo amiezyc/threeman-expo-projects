@@ -85,6 +85,7 @@ export type Database = {
           project_id: string
           receipt_url: string | null
           sub_category: string
+          user_id: string | null
         }
         Insert: {
           amount?: number
@@ -97,6 +98,7 @@ export type Database = {
           project_id: string
           receipt_url?: string | null
           sub_category: string
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -109,6 +111,7 @@ export type Database = {
           project_id?: string
           receipt_url?: string | null
           sub_category?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -200,9 +203,43 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          daily_rate: number | null
+          hourly_rate: number | null
+          id: string
+          name: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          daily_rate?: number | null
+          hourly_rate?: number | null
+          id: string
+          name?: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          daily_rate?: number | null
+          hourly_rate?: number | null
+          id?: string
+          name?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           created_at: string
+          created_by: string | null
           end_date: string | null
           id: string
           name: string
@@ -210,6 +247,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           end_date?: string | null
           id?: string
           name: string
@@ -217,6 +255,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           end_date?: string | null
           id?: string
           name?: string
@@ -226,6 +265,7 @@ export type Database = {
       }
       work_logs: {
         Row: {
+          auth_user_id: string | null
           booth_id: string | null
           daily_rate: number
           date: string
@@ -237,6 +277,7 @@ export type Database = {
           user_name: string
         }
         Insert: {
+          auth_user_id?: string | null
           booth_id?: string | null
           daily_rate?: number
           date: string
@@ -248,6 +289,7 @@ export type Database = {
           user_name: string
         }
         Update: {
+          auth_user_id?: string | null
           booth_id?: string | null
           daily_rate?: number
           date?: string
@@ -280,7 +322,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

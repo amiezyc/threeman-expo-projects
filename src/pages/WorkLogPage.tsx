@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,29 +11,29 @@ import { Calendar, DollarSign, Pencil, Trash2 } from 'lucide-react';
 import { WorkLog } from '@/types';
 
 const WorkLogPage = () => {
-  const { user, projects, addWorkLog, updateWorkLog, deleteWorkLog } = useApp();
-  const myLogs = projects.flatMap(p => p.workLogs).filter(w => w.userId === user.id);
+  const { profile } = useAuth();
+  const { projects, addWorkLog, updateWorkLog, deleteWorkLog } = useApp();
+  const myLogs = projects.flatMap(p => p.workLogs).filter(w => w.userId === profile?.id);
   const totalDays = myLogs.length;
-  const totalPay = myLogs.reduce((s, w) => s + w.dailyRate, 0);
+  const totalPay = myLogs.reduce((s, w) => s + (w.rateType === 'hourly' ? w.dailyRate * (w.hours || 0) : w.dailyRate), 0);
 
   const [selectedProject, setSelectedProject] = useState(projects[0]?.id || '');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Edit dialog state
   const [editLog, setEditLog] = useState<WorkLog | null>(null);
   const [editDate, setEditDate] = useState('');
   const [editRate, setEditRate] = useState('');
   const [editProject, setEditProject] = useState('');
 
   const handleAddLog = () => {
-    if (!selectedProject || !date) return;
+    if (!selectedProject || !date || !profile) return;
     addWorkLog({
       id: `wl-${Date.now()}`,
       projectId: selectedProject,
-      userId: user.id,
-      userName: user.name,
+      userId: profile.id,
+      userName: profile.name,
       date,
-      dailyRate: user.dailyRate || 250,
+      dailyRate: profile.daily_rate || 250,
       rateType: 'daily',
     });
   };
@@ -46,12 +47,7 @@ const WorkLogPage = () => {
 
   const handleSaveEdit = () => {
     if (!editLog) return;
-    updateWorkLog({
-      ...editLog,
-      date: editDate,
-      dailyRate: Number(editRate),
-      projectId: editProject,
-    });
+    updateWorkLog({ ...editLog, date: editDate, dailyRate: Number(editRate), projectId: editProject });
     setEditLog(null);
   };
 
@@ -81,9 +77,7 @@ const WorkLogPage = () => {
             <Select value={selectedProject} onValueChange={setSelectedProject}>
               <SelectTrigger><SelectValue placeholder="选择项目" /></SelectTrigger>
               <SelectContent>
-                {projects.map(p => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                ))}
+                {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -111,8 +105,10 @@ const WorkLogPage = () => {
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-muted-foreground">{projects.find(p => p.id === log.projectId)?.name}</span>
-                  <span className="font-bold">${log.dailyRate}</span>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => openEdit(log)}>
+                  <span className="font-bold">
+                    {log.rateType === 'hourly' ? `$${log.dailyRate}/hr × ${log.hours || 0}h` : `$${log.dailyRate}/天`}
+                  </span>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => openEdit(log)}>
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -122,21 +118,16 @@ const WorkLogPage = () => {
         </div>
       </div>
 
-      {/* Edit Work Log Dialog */}
       <Dialog open={!!editLog} onOpenChange={open => !open && setEditLog(null)}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>编辑工时</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>编辑工时</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>项目</Label>
               <Select value={editProject} onValueChange={setEditProject}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {projects.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
+                  {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

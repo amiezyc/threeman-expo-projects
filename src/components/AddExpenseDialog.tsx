@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '@/context/AppContext';
+import { useAuth } from '@/context/AuthContext';
 import { ExpenseMainCategory, ExpenseSubCategory, Expense, categoryStructure } from '@/types';
 import { Plus, Upload, X, Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,7 +19,8 @@ interface AddExpenseDialogProps {
 }
 
 const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
-  const { user, addExpense, projects } = useApp();
+  const { addExpense, projects } = useApp();
+  const { profile } = useAuth();
   const [open, setOpen] = useState(false);
   const [mainCategory, setMainCategory] = useState<ExpenseMainCategory>('差旅');
   const [subCategory, setSubCategory] = useState<ExpenseSubCategory>(categoryStructure['差旅'][0]);
@@ -105,7 +107,7 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
       id: `exp-${Date.now()}`,
       projectId,
       boothId: mainCategory === '三方' ? selectedBooth : undefined,
-      paidBy: user.name,
+      paidBy: profile?.name || '',
       mainCategory,
       subCategory,
       amount: parseFloat(amount),

@@ -7,20 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
-import { Users, Plus, Pencil, Calendar as CalendarIcon, Trash2, Clock } from 'lucide-react';
+import { Users, Plus, Pencil, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
 import StatCard from '@/components/StatCard';
-import EmployeeDialog from '@/components/EmployeeDialog';
-import { User, WorkLog, RateType } from '@/types';
+import { WorkLog, RateType } from '@/types';
 import { toast } from 'sonner';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 
 const EmployeesPage = () => {
-  const { employees, projects, addEmployee, updateEmployee, deleteEmployee, addWorkLog, updateWorkLog, deleteWorkLog } = useApp();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<User | null>(null);
+  const { employees, projects, addWorkLog, updateWorkLog, deleteWorkLog } = useApp();
 
   // Work log management
-  const [workLogEmployee, setWorkLogEmployee] = useState<User | null>(null);
+  const [workLogEmployee, setWorkLogEmployee] = useState<typeof employees[0] | null>(null);
   const [editingLog, setEditingLog] = useState<WorkLog | null>(null);
   const [logDate, setLogDate] = useState('');
   const [logRate, setLogRate] = useState('');
@@ -47,26 +44,7 @@ const EmployeesPage = () => {
 
   const totalLabor = employeeStats.reduce((s, e) => s + e.totalPay, 0);
 
-  const handleSave = (emp: User) => {
-    if (editingEmployee) {
-      updateEmployee(emp);
-    } else {
-      addEmployee(emp);
-    }
-    setEditingEmployee(null);
-  };
-
-  const handleEdit = (emp: User) => {
-    setEditingEmployee(emp);
-    setDialogOpen(true);
-  };
-
-  const handleAdd = () => {
-    setEditingEmployee(null);
-    setDialogOpen(true);
-  };
-
-  const openWorkLogs = (emp: User) => {
+  const openWorkLogs = (emp: typeof employees[0]) => {
     setWorkLogEmployee(emp);
     setEditingLog(null);
     setAddingLog(false);
@@ -130,14 +108,9 @@ const EmployeesPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">员工管理</h2>
-          <p className="text-muted-foreground text-sm">员工工时和开销汇总</p>
-        </div>
-        <Button onClick={handleAdd} className="gap-2">
-          <Plus className="h-4 w-4" /> 添加员工
-        </Button>
+      <div>
+        <h2 className="text-2xl font-bold">员工管理</h2>
+        <p className="text-muted-foreground text-sm">员工工时和开销汇总（通过用户管理添加员工）</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -151,17 +124,18 @@ const EmployeesPage = () => {
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead>姓名</TableHead>
+                <TableHead>角色</TableHead>
                 <TableHead>日薪</TableHead>
                 <TableHead>工作天数</TableHead>
                 <TableHead>人工费合计</TableHead>
                 <TableHead>垫付开销</TableHead>
-                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {employeeStats.map(emp => (
                 <TableRow key={emp.id}>
                   <TableCell className="font-medium">{emp.name}</TableCell>
+                  <TableCell>{emp.role === 'admin' ? '管理员' : '员工'}</TableCell>
                   <TableCell>${emp.dailyRate ?? '-'}</TableCell>
                   <TableCell>
                     <button
@@ -174,25 +148,12 @@ const EmployeesPage = () => {
                   </TableCell>
                   <TableCell className="font-semibold">${emp.totalPay.toLocaleString()}</TableCell>
                   <TableCell>${emp.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(emp)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
       </div>
-
-      <EmployeeDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        employee={editingEmployee}
-        onSave={handleSave}
-        onDelete={deleteEmployee}
-      />
 
       {/* Work Log Management Dialog */}
       <Dialog open={!!workLogEmployee} onOpenChange={open => !open && setWorkLogEmployee(null)}>
@@ -259,7 +220,7 @@ const EmployeesPage = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">
-                          {log.rateType === 'hourly' 
+                          {log.rateType === 'hourly'
                             ? `$${log.dailyRate}/hr × ${log.hours || 0}h = $${(log.dailyRate * (log.hours || 0)).toFixed(2)}`
                             : `$${log.dailyRate}/天`
                           }

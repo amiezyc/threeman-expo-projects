@@ -1,11 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Project, User, Expense, WorkLog, UserRole, Booth, PartnerShare, Payment } from '@/types';
+import { Project, Expense, WorkLog, Booth, PartnerShare, Payment } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+interface Employee {
+  id: string;
+  name: string;
+  role: string;
+  dailyRate?: number;
+  hourlyRate?: number;
+}
+
 interface AppContextType {
-  user: User;
-  setUserRole: (role: UserRole) => void;
   projects: Project[];
   loading: boolean;
   addExpense: (expense: Expense) => void;
@@ -14,10 +20,7 @@ interface AppContextType {
   addWorkLog: (workLog: WorkLog) => void;
   updateWorkLog: (workLog: WorkLog) => void;
   deleteWorkLog: (projectId: string, workLogId: string) => void;
-  employees: User[];
-  addEmployee: (employee: User) => void;
-  updateEmployee: (employee: User) => void;
-  deleteEmployee: (id: string) => void;
+  employees: Employee[];
   addProject: (project: Project) => void;
   updateProject: (project: Project) => void;
   deleteProject: (id: string) => void;
@@ -38,24 +41,20 @@ export const useApp = () => {
   return ctx;
 };
 
-const defaultUser: User = { id: 'boss-1', name: 'Ami', role: 'boss' };
-
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User>(defaultUser);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [employees, setEmployees] = useState<User[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load all data from DB
   const loadData = useCallback(async () => {
     try {
-      const [projRes, boothRes, payRes, expRes, wlRes, empRes, partnerRes] = await Promise.all([
+      const [projRes, boothRes, payRes, expRes, wlRes, profilesRes, partnerRes] = await Promise.all([
         supabase.from('projects').select('*').order('created_at', { ascending: false }),
         supabase.from('booths').select('*'),
         supabase.from('payments').select('*'),
         supabase.from('expenses').select('*'),
         supabase.from('work_logs').select('*'),
-        supabase.from('employees').select('*'),
+        supabase.from('profiles').select('*'),
         supabase.from('partner_shares').select('*'),
       ]);
 
@@ -64,7 +63,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const paymentRows = payRes.data || [];
       const expenseRows = expRes.data || [];
       const workLogRows = wlRes.data || [];
-      const employeeRows = empRes.data || [];
+      const profileRows = profilesRes.data || [];
       const partnerRows = partnerRes.data || [];
 
       const mappedProjects: Project[] = projectRows.map((p: any) => {
@@ -138,10 +137,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       setProjects(mappedProjects);
 
-      setEmployees(employeeRows.map((e: any) => ({
+      // Use profiles as employees list
+      setEmployees(profileRows.map((e: any) => ({
         id: e.id,
         name: e.name,
-        role: e.role as UserRole,
+        role: e.role,
         dailyRate: e.daily_rate ? Number(e.daily_rate) : undefined,
         hourlyRate: e.hourly_rate ? Number(e.hourly_rate) : undefined,
       })));
@@ -153,36 +153,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-
-  const setUserRole = (role: UserRole) => {
-    if (role === 'boss') {
-      setUser(defaultUser);
-    } else {
-      setUser(employees.length > 0 ? { ...employees[0], role: 'employee' } : { ...defaultUser, role: 'employee' });
-    }
-  };
-
-  // === Employees ===
-  const addEmployee = async (emp: User) => {
-    const { data, error } = await supabase.from('employees').insert({
-      name: emp.name, role: emp.role, daily_rate: emp.dailyRate ?? 250, hourly_rate: emp.hourlyRate ?? null,
-    }).select().single();
-    if (error) { toast.error('保存失败'); return; }
-    setEmployees(prev => [...prev, { id: data.id, name: data.name, role: data.role as UserRole, dailyRate: Number(data.daily_rate), hourlyRate: data.hourly_rate ? Number(data.hourly_rate) : undefined }]);
-  };
-
-  const updateEmployee = async (emp: User) => {
-    const { error } = await supabase.from('employees').update({
-      name: emp.name, role: emp.role, daily_rate: emp.dailyRate, hourly_rate: emp.hourlyRate ?? null,
-    }).eq('id', emp.id);
-    if (error) { toast.error('保存失败'); return; }
-    setEmployees(prev => prev.map(e => e.id === emp.id ? emp : e));
-  };
-
-  const deleteEmployee = async (id: string) => {
-    await supabase.from('employees').delete().eq('id', id);
-    setEmployees(prev => prev.filter(e => e.id !== id));
-  };
 
   // === Projects ===
   const addProject = async (project: Project) => {
@@ -289,7 +259,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ));
   };
 
-  // === Sync labor expenses from work logs, returns updated project (single setProjects call) ===
+  // === Sync labor expenses ===
   const syncLaborExpenses = async (project: Project): Promise<Project> => {
     const byEmployee = new Map<string, { userName: string; total: number }>();
     project.workLogs.forEach(w => {
@@ -328,7 +298,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const { data, error } = await supabase.from('expenses').insert({
           project_id: project.id,
           booth_id: null,
-          paid_by: 'Ami',
+          paid_by: 'System',
           main_category: '人工',
           sub_category: subCat,
           amount: info.total,
@@ -339,7 +309,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           updatedExpenses.push({
             id: data.id,
             projectId: project.id,
-            paidBy: 'Ami',
+            paidBy: 'System',
             mainCategory: '人工' as any,
             subCategory: subCat as any,
             amount: info.total,
@@ -461,10 +431,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   return (
     <AppContext.Provider value={{
-      user, setUserRole, projects, loading,
+      projects, loading,
       addExpense, updateExpense, deleteExpense,
       addWorkLog, updateWorkLog, deleteWorkLog,
-      employees, addEmployee, updateEmployee, deleteEmployee,
+      employees,
       addProject, updateProject, deleteProject,
       addBooth, updateBooth, deleteBooth,
       updatePartners,
