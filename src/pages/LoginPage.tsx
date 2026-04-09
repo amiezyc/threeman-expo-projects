@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +9,13 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 const LoginPage = () => {
+  const { signIn, session, profile, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  // Already logged in - redirect
+  if (!authLoading && session && profile) {
+    return <Navigate to={profile.role === 'admin' ? '/admin' : '/employee'} replace />;
+  }
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
