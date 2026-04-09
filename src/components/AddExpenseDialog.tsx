@@ -19,7 +19,8 @@ interface AddExpenseDialogProps {
 }
 
 const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
-  const { user, addExpense, projects } = useApp();
+  const { addExpense, projects } = useApp();
+  const { profile } = useAuth();
   const [open, setOpen] = useState(false);
   const [mainCategory, setMainCategory] = useState<ExpenseMainCategory>('差旅');
   const [subCategory, setSubCategory] = useState<ExpenseSubCategory>(categoryStructure['差旅'][0]);
