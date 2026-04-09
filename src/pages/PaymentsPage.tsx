@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { Payment, PaymentStatus, Booth } from '@/types';
 
 const PaymentsPage = () => {
-  const { projects, addPayment, updateBooth } = useApp();
+  const { projects, addPayment, updateBooth, updatePayment, deletePayment } = useApp();
   const allBooths = projects.flatMap(p => p.booths);
   const allPayments = allBooths.flatMap(b => b.payments);
 
