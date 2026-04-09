@@ -32,15 +32,23 @@ const InviteUserPage = () => {
     if (!email || !name) return;
     setLoading(true);
 
-    const { error } = await supabase.functions.invoke('invite-user', {
+    const { data, error } = await supabase.functions.invoke('create-invite', {
       body: { email, name, role },
     });
 
     setLoading(false);
-    if (error) {
-      toast.error('邀请失败: ' + (error.message || '未知错误'));
+    if (error || data?.error) {
+      toast.error('邀请失败: ' + (data?.error || error?.message || '未知错误'));
     } else {
-      toast.success(`已发送邀请至 ${email}`);
+      const link = data?.actionLink;
+      toast.success(`已创建用户 ${email}`);
+      if (link) {
+        // Copy accept-invite link to clipboard
+        const acceptUrl = `${window.location.origin}/accept-invite#token=${new URL(link).searchParams.get('token') || ''}`;
+        navigator.clipboard.writeText(acceptUrl).then(() => {
+          toast.info('邀请链接已复制到剪贴板');
+        }).catch(() => {});
+      }
       setEmail('');
       setName('');
       loadProfiles();
