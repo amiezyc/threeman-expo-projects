@@ -17,6 +17,8 @@ import { toast } from 'sonner';
 
 const ProjectsPage = () => {
   const { projects, addProject, updateProject, deleteProject, addBooth, updateBooth, deleteBooth, updatePartners } = useApp();
+  const [openProjects, setOpenProjects] = useState<Record<string, boolean>>({});
+  const toggleProject = (id: string) => setOpenProjects(prev => ({ ...prev, [id]: !prev[id] }));
 
   // Add project dialog
   const [addProjectOpen, setAddProjectOpen] = useState(false);
