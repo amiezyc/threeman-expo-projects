@@ -20,11 +20,28 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const RootRedirect = () => {
-  const { profile, loading } = useAuth();
+  const { profile, loading, session } = useAuth();
   if (loading) return null;
-  if (!profile) return <Navigate to="/login" replace />;
+  if (!session) return <Navigate to="/login" replace />;
+  if (!profile) return null;
   return <Navigate to={profile.role === 'admin' ? '/admin' : '/employee'} replace />;
 };
+
+const AdminLayout = () => (
+  <ProtectedRoute requireAdmin>
+    <AppProvider>
+      <AppLayout />
+    </AppProvider>
+  </ProtectedRoute>
+);
+
+const EmployeeLayout = () => (
+  <ProtectedRoute>
+    <AppProvider>
+      <AppLayout />
+    </AppProvider>
+  </ProtectedRoute>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -39,11 +56,7 @@ const App = () => (
             <Route path="/" element={<RootRedirect />} />
 
             {/* Admin routes */}
-            <Route element={
-              <ProtectedRoute requireAdmin>
-                <AppProvider><AppLayout /></AppProvider>
-              </ProtectedRoute>
-            }>
+            <Route element={<AdminLayout />}>
               <Route path="/admin" element={<Dashboard />} />
               <Route path="/admin/projects" element={<ProjectsPage />} />
               <Route path="/admin/payments" element={<PaymentsPage />} />
@@ -52,11 +65,7 @@ const App = () => (
             </Route>
 
             {/* Employee routes */}
-            <Route element={
-              <ProtectedRoute>
-                <AppProvider><AppLayout /></AppProvider>
-              </ProtectedRoute>
-            }>
+            <Route element={<EmployeeLayout />}>
               <Route path="/employee" element={<EmployeeDashboard />} />
             </Route>
 
