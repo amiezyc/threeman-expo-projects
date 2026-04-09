@@ -15,6 +15,7 @@ import PaymentsPage from "./pages/PaymentsPage";
 import EmployeesPage from "./pages/EmployeesPage";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import InviteUserPage from "./pages/InviteUserPage";
+import AcceptInvitePage from "./pages/AcceptInvitePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/set-password" element={<SetPasswordPage />} />
+            <Route path="/accept-invite" element={<AcceptInvitePage />} />
             <Route path="/" element={<RootRedirect />} />
 
             {/* Admin routes */}
