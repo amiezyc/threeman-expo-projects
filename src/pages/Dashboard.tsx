@@ -41,56 +41,55 @@ const Dashboard = () => {
                 <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${openProjects[project.id] !== false ? 'rotate-180' : ''}`} />
               </CollapsibleTrigger>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <StatCard title="合同总额" value={`$${totalContract.toLocaleString()}`} icon={DollarSign} />
-              <StatCard title="总支出" value={`$${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={TrendingDown} variant="warning" />
-              <StatCard title="预计利润" value={`$${profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} subtitle={`利润率 ${((profit / totalContract) * 100).toFixed(1)}%`} icon={TrendingUp} variant={profit > 0 ? 'success' : 'destructive'} />
-              <StatCard title="待收款" value={`$${totalPending.toLocaleString()}`} subtitle={`已收 $${totalReceived.toLocaleString()}`} icon={Clock} variant="warning" />
-            </div>
-
-            {/* Partner profit sharing */}
-            {project.partners && project.partners.length > 0 && (
-              <ProfitSharing partners={project.partners} totalProfit={profit} />
-            )}
-
-            {/* Payment tracking */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {project.booths.map(booth => (
-                <div key={booth.id} className="glass-card rounded-lg p-5">
-                  <PaymentTracker payments={booth.payments} clientName={booth.clientName} />
+              <CollapsibleContent className="space-y-5 mt-5">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <StatCard title="合同总额" value={`$${totalContract.toLocaleString()}`} icon={DollarSign} />
+                  <StatCard title="总支出" value={`$${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={TrendingDown} variant="warning" />
+                  <StatCard title="预计利润" value={`$${profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} subtitle={`利润率 ${((profit / totalContract) * 100).toFixed(1)}%`} icon={TrendingUp} variant={profit > 0 ? 'success' : 'destructive'} />
+                  <StatCard title="待收款" value={`$${totalPending.toLocaleString()}`} subtitle={`已收 $${totalReceived.toLocaleString()}`} icon={Clock} variant="warning" />
                 </div>
-              ))}
-            </div>
 
-            {/* Project-level expenses */}
-            <div className="glass-card rounded-lg p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold">项目开销</h4>
-                <AddExpenseDialog projectId={project.id} />
-              </div>
-              <ExpenseBreakdown expenses={projectLevelExpenses} title="差旅 / 物料 / 人工" />
-            </div>
+                {project.partners && project.partners.length > 0 && (
+                  <ProfitSharing partners={project.partners} totalProfit={profit} />
+                )}
 
-            {/* Booth-specific (三方) expenses */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {project.booths.map(booth => {
-                const bExpenses = boothExpenses(booth.id);
-                return (
-                  <div key={booth.id} className="glass-card rounded-lg p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold">{booth.clientName} 三方费用</h4>
-                      <AddExpenseDialog projectId={project.id} boothId={booth.id} />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {project.booths.map(booth => (
+                    <div key={booth.id} className="glass-card rounded-lg p-5">
+                      <PaymentTracker payments={booth.payments} clientName={booth.clientName} />
                     </div>
-                    {bExpenses.length > 0 ? (
-                      <ExpenseBreakdown expenses={bExpenses} />
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-4">暂无三方费用</p>
-                    )}
+                  ))}
+                </div>
+
+                <div className="glass-card rounded-lg p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold">项目开销</h4>
+                    <AddExpenseDialog projectId={project.id} />
                   </div>
-                );
-              })}
+                  <ExpenseBreakdown expenses={projectLevelExpenses} title="差旅 / 物料 / 人工" />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {project.booths.map(booth => {
+                    const bExpenses = boothExpenses(booth.id);
+                    return (
+                      <div key={booth.id} className="glass-card rounded-lg p-5">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold">{booth.clientName} 三方费用</h4>
+                          <AddExpenseDialog projectId={project.id} boothId={booth.id} />
+                        </div>
+                        {bExpenses.length > 0 ? (
+                          <ExpenseBreakdown expenses={bExpenses} />
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-4">暂无三方费用</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CollapsibleContent>
             </div>
-          </div>
+          </Collapsible>
         );
       })}
     </div>
