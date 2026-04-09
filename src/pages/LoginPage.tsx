@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,10 +9,15 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 const LoginPage = () => {
-  const { signIn } = useAuth();
+  const { signIn, session, profile, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Already logged in - redirect
+  if (!authLoading && session && profile) {
+    return <Navigate to={profile.role === 'admin' ? '/admin' : '/employee'} replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
