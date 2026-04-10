@@ -325,13 +325,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
-      // Delete auto-expenses for employees no longer in work logs
-      const { data: dbAuto } = await supabase.from('expenses').select('id, source_id')
-        .eq('project_id', project.id).eq('main_category', '人工').not('source_id', 'is', null);
-      for (const row of (dbAuto || [])) {
-        if (!byEmployee.has(row.source_id!) || (byEmployee.get(row.source_id!)?.total ?? 0) <= 0) {
-          await supabase.from('expenses').delete().eq('id', row.id);
-        }
+      // Delete stale auto-expenses (remaining in existingBySource = no longer in work logs)
+      for (const [, staleRow] of existingBySource) {
+        await supabase.from('expenses').delete().eq('id', staleRow.id);
       }
 
       // Rebuild local expenses: keep non-auto, replace auto with fresh upsert results
