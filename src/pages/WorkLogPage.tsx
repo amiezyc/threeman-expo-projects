@@ -26,17 +26,22 @@ const WorkLogPage = () => {
   const [editRate, setEditRate] = useState('');
   const [editProject, setEditProject] = useState('');
 
-  const handleAddLog = () => {
-    if (!selectedProject || !date || !profile) return;
-    addWorkLog({
-      id: `wl-${Date.now()}`,
-      projectId: selectedProject,
-      userId: profile.id,
-      userName: profile.name,
-      date,
-      dailyRate: profile.daily_rate || 250,
-      rateType: 'daily',
-    });
+  const handleAddLog = async () => {
+    if (!selectedProject || !date || !profile || submitting) return;
+    setSubmitting(true);
+    try {
+      await addWorkLog({
+        id: `wl-${Date.now()}`,
+        projectId: selectedProject,
+        userId: profile.id,
+        userName: profile.name,
+        date,
+        dailyRate: profile.daily_rate || 250,
+        rateType: 'daily',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const openEdit = (log: WorkLog) => {
