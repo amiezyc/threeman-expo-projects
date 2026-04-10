@@ -274,32 +274,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         byEmployee.set(w.userId, existing);
       });
 
-      // Upsert each employee's labor expense via RPC (source_id makes it idempotent)
+      // Fetch existing auto-labor expenses by source_id
+      const { data: dbAuto } = await supabase.from('expenses').select('*')
+        .eq('project_id', project.id).eq('main_category', '人工').not('source_id', 'is', null);
+      const existingBySource = new Map((dbAuto || []).map((e: any) => [e.source_id, e]));
+
       const upsertResults: Expense[] = [];
       for (const [userId, info] of byEmployee) {
         if (info.total <= 0) continue;
         const subCat = `auto:${userId}`;
-        const row = {
-          project_id: project.id,
-          booth_id: null,
-          paid_by: 'System',
-          main_category: '人工',
-          sub_category: subCat,
-          source_id: userId,
-          amount: info.total,
-          description: `${info.userName} 人工费`,
-          date: new Date().toISOString().split('T')[0],
-        };
-        const { data, error } = await supabase.from('expenses').upsert(row, {
-          onConflict: 'project_id,main_category,source_id',
-          ignoreDuplicates: false,
-        }).select().single();
-        if (!error && data) {
+        const existing = existingBySource.get(userId);
+
+        if (existing) {
+          // Update if amount changed
+          if (Number(existing.amount) !== info.total) {
+            await supabase.from('expenses').update({ amount: info.total, description: `${info.userName} 人工费` }).eq('id', existing.id);
+          }
           upsertResults.push({
-            id: data.id, projectId: project.id, paidBy: 'System',
+            id: existing.id, projectId: project.id, paidBy: 'System',
             mainCategory: '人工' as any, subCategory: subCat as any,
-            amount: Number(data.amount), description: data.description, date: data.date,
+            amount: info.total, description: `${info.userName} 人工费`, date: existing.date,
           });
+          existingBySource.delete(userId); // mark as handled
+        } else {
+          const { data, error } = await supabase.from('expenses').insert({
+            project_id: project.id, booth_id: null, paid_by: 'System',
+            main_category: '人工', sub_category: subCat, source_id: userId,
+            amount: info.total, description: `${info.userName} 人工费`,
+            date: new Date().toISOString().split('T')[0],
+          }).select().single();
+          if (!error && data) {
+            upsertResults.push({
+              id: data.id, projectId: project.id, paidBy: 'System',
+              mainCategory: '人工' as any, subCategory: subCat as any,
+              amount: info.total, description: data.description, date: data.date,
+            });
+          } else if (error?.code === '23505') {
+            // Conflict: re-fetch and update
+            const { data: r } = await supabase.from('expenses').select('*')
+              .eq('project_id', project.id).eq('source_id', userId).single();
+            if (r) {
+              await supabase.from('expenses').update({ amount: info.total }).eq('id', r.id);
+              upsertResults.push({
+                id: r.id, projectId: project.id, paidBy: 'System',
+                mainCategory: '人工' as any, subCategory: subCat as any,
+                amount: info.total, description: r.description, date: r.date,
+              });
+            }
+          }
         }
       }
 
