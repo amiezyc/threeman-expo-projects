@@ -19,6 +19,7 @@ const WorkLogPage = () => {
 
   const [selectedProject, setSelectedProject] = useState(projects[0]?.id || '');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [submitting, setSubmitting] = useState(false);
 
   const [editLog, setEditLog] = useState<WorkLog | null>(null);
   const [editDate, setEditDate] = useState('');
