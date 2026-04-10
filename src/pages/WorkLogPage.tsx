@@ -19,23 +19,29 @@ const WorkLogPage = () => {
 
   const [selectedProject, setSelectedProject] = useState(projects[0]?.id || '');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [submitting, setSubmitting] = useState(false);
 
   const [editLog, setEditLog] = useState<WorkLog | null>(null);
   const [editDate, setEditDate] = useState('');
   const [editRate, setEditRate] = useState('');
   const [editProject, setEditProject] = useState('');
 
-  const handleAddLog = () => {
-    if (!selectedProject || !date || !profile) return;
-    addWorkLog({
-      id: `wl-${Date.now()}`,
-      projectId: selectedProject,
-      userId: profile.id,
-      userName: profile.name,
-      date,
-      dailyRate: profile.daily_rate || 250,
-      rateType: 'daily',
-    });
+  const handleAddLog = async () => {
+    if (!selectedProject || !date || !profile || submitting) return;
+    setSubmitting(true);
+    try {
+      await addWorkLog({
+        id: `wl-${Date.now()}`,
+        projectId: selectedProject,
+        userId: profile.id,
+        userName: profile.name,
+        date,
+        dailyRate: profile.daily_rate || 250,
+        rateType: 'daily',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const openEdit = (log: WorkLog) => {
@@ -86,7 +92,9 @@ const WorkLogPage = () => {
             <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
           <div className="flex items-end">
-            <Button onClick={handleAddLog} className="w-full">记录工时</Button>
+            <Button onClick={handleAddLog} className="w-full" disabled={submitting}>
+              {submitting ? '提交中...' : '记录工时'}
+            </Button>
           </div>
         </div>
       </div>
