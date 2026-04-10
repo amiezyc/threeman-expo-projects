@@ -84,6 +84,7 @@ export type Database = {
           paid_by: string
           project_id: string
           receipt_url: string | null
+          source_id: string | null
           sub_category: string
           user_id: string | null
         }
@@ -97,6 +98,7 @@ export type Database = {
           paid_by: string
           project_id: string
           receipt_url?: string | null
+          source_id?: string | null
           sub_category: string
           user_id?: string | null
         }
@@ -110,6 +112,7 @@ export type Database = {
           paid_by?: string
           project_id?: string
           receipt_url?: string | null
+          source_id?: string | null
           sub_category?: string
           user_id?: string | null
         }
