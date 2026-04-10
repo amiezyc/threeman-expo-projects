@@ -45,6 +45,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [projects, setProjects] = useState<Project[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const syncingRef = React.useRef<Record<string, boolean>>({});
 
   const loadData = useCallback(async () => {
     try {
