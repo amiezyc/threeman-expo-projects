@@ -92,7 +92,9 @@ const WorkLogPage = () => {
             <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
           <div className="flex items-end">
-            <Button onClick={handleAddLog} className="w-full">记录工时</Button>
+            <Button onClick={handleAddLog} className="w-full" disabled={submitting}>
+              {submitting ? '提交中...' : '记录工时'}
+            </Button>
           </div>
         </div>
       </div>
