@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          performed_by: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          performed_by?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          performed_by?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       booths: {
         Row: {
           client_name: string
@@ -213,6 +240,7 @@ export type Database = {
           daily_rate: number | null
           hourly_rate: number | null
           id: string
+          must_change_password: boolean
           name: string
           role: string
           updated_at: string
@@ -223,6 +251,7 @@ export type Database = {
           daily_rate?: number | null
           hourly_rate?: number | null
           id: string
+          must_change_password?: boolean
           name?: string
           role?: string
           updated_at?: string
@@ -233,6 +262,7 @@ export type Database = {
           daily_rate?: number | null
           hourly_rate?: number | null
           id?: string
+          must_change_password?: boolean
           name?: string
           role?: string
           updated_at?: string
