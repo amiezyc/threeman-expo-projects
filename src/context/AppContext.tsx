@@ -104,6 +104,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             description: e.description,
             date: e.date,
             receiptUrl: e.receipt_url || undefined,
+            reimbursed: !!e.reimbursed,
           }));
 
         const workLogs: WorkLog[] = workLogRows
