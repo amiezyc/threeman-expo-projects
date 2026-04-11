@@ -1,8 +1,9 @@
 import { Expense, ExpenseMainCategory } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronRight, Pencil, Image } from 'lucide-react';
+import { ChevronDown, ChevronRight, Pencil, Image, CircleDollarSign } from 'lucide-react';
 import { useState } from 'react';
 import EditExpenseDialog from './EditExpenseDialog';
+import { useApp } from '@/context/AppContext';
 
 interface ExpenseBreakdownProps {
   expenses: Expense[];
@@ -18,6 +19,7 @@ const mainCategoryColors: Record<ExpenseMainCategory, string> = {
 };
 
 const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
+  const { updateExpense } = useApp();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
@@ -29,6 +31,11 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
     });
   };
 
+  const toggleReimbursed = (e: React.MouseEvent, item: Expense) => {
+    e.stopPropagation();
+    updateExpense({ ...item, reimbursed: !item.reimbursed });
+  };
+
   const grouped = expenses.reduce<Record<string, Expense[]>>((acc, e) => {
     const key = e.mainCategory;
     if (!acc[key]) acc[key] = [];
@@ -36,8 +43,10 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
     return acc;
   }, {});
 
-  const byPayer = expenses.reduce<Record<string, number>>((acc, e) => {
-    acc[e.paidBy] = (acc[e.paidBy] || 0) + e.amount;
+  const byPayer = expenses.reduce<Record<string, { total: number; unreimbursed: number }>>((acc, e) => {
+    if (!acc[e.paidBy]) acc[e.paidBy] = { total: 0, unreimbursed: 0 };
+    acc[e.paidBy].total += e.amount;
+    if (!e.reimbursed) acc[e.paidBy].unreimbursed += e.amount;
     return acc;
   }, {});
 
@@ -52,11 +61,20 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
         </div>
       )}
 
-      {Object.keys(byPayer).length > 1 && (
+      {Object.keys(byPayer).length > 0 && (
         <div className="flex flex-wrap gap-2 text-xs">
-          {Object.entries(byPayer).map(([name, amt]) => (
+          {Object.entries(byPayer).map(([name, info]) => (
             <span key={name} className="rounded-full bg-muted px-3 py-1">
-              Paid by {name}: <span className="font-semibold">${amt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              {name}: <span className="font-semibold">${info.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              {info.unreimbursed > 0 && info.unreimbursed < info.total && (
+                <span className="text-destructive ml-1">(待收 ${info.unreimbursed.toLocaleString(undefined, { minimumFractionDigits: 2 })})</span>
+              )}
+              {info.unreimbursed === info.total && (
+                <span className="text-destructive ml-1">(未收款)</span>
+              )}
+              {info.unreimbursed === 0 && (
+                <span className="text-primary ml-1">(已收款)</span>
+              )}
             </span>
           ))}
         </div>
@@ -98,21 +116,35 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
                         </div>
                       )}
                       {data.items.map(item => (
-                        <button
+                        <div
                           key={item.id}
-                          onClick={() => setEditingExpense(item)}
                           className="flex w-full items-center justify-between rounded-md px-4 py-2 text-sm bg-muted/30 hover:bg-muted/60 transition-colors group"
                         >
-                          <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditingExpense(item)}
+                            className="flex items-center gap-2 flex-1 text-left"
+                          >
                             <span className="text-muted-foreground">{data.items.length === 1 ? sub : ''}</span>
                             <span className="text-xs text-muted-foreground/80">{item.description}</span>
                             {item.receiptUrl && <Image className="h-3 w-3 text-primary" />}
-                          </div>
+                          </button>
                           <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => toggleReimbursed(e, item)}
+                              className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${
+                                item.reimbursed
+                                  ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                                  : 'bg-destructive/10 text-destructive hover:bg-destructive/20'
+                              }`}
+                              title={item.reimbursed ? '已收款 (点击切换)' : '未收款 (点击切换)'}
+                            >
+                              <CircleDollarSign className="h-3 w-3" />
+                              {item.reimbursed ? '已收' : '未收'}
+                            </button>
                             <span className="font-medium">${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                             <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   ))}

@@ -38,6 +38,7 @@ export interface Expense {
   description: string;
   date: string;
   receiptUrl?: string;
+  reimbursed?: boolean;
 }
 
 export interface WorkLog {
