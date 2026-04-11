@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '@/context/AppContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { ExpenseMainCategory, ExpenseSubCategory, Expense, categoryStructure } from '@/types';
 import { Trash2, Upload, X, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 const mainCategories = Object.keys(categoryStructure) as ExpenseMainCategory[];
 
@@ -19,6 +19,7 @@ interface EditExpenseDialogProps {
 
 const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogProps) => {
   const { updateExpense, deleteExpense, projects } = useApp();
+  const { t } = useLanguage();
   const [mainCategory, setMainCategory] = useState<ExpenseMainCategory>(expense.mainCategory);
   const [subCategory, setSubCategory] = useState<ExpenseSubCategory>(expense.subCategory);
   const [amount, setAmount] = useState(expense.amount.toString());
@@ -32,6 +33,11 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
 
   const project = projects.find(p => p.id === expense.projectId);
 
+  const catDisplayName = (cat: ExpenseMainCategory) => {
+    const key = `cat.${cat}` as any;
+    return t(key);
+  };
+
   const handleMainCategoryChange = (cat: ExpenseMainCategory) => {
     setMainCategory(cat);
     setSubCategory(categoryStructure[cat][0]);
@@ -41,13 +47,9 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    // Preview
     const reader = new FileReader();
     reader.onloadend = () => setReceiptPreview(reader.result as string);
     reader.readAsDataURL(file);
-
-    // Upload to storage with UUID name
     setUploading(true);
     try {
       const { uploadFile } = await import('@/lib/uploadFile');
@@ -59,21 +61,12 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
     setUploading(false);
   };
 
-  const handleRemoveReceipt = () => {
-    setReceiptUrl('');
-    setReceiptPreview('');
-  };
+  const handleRemoveReceipt = () => { setReceiptUrl(''); setReceiptPreview(''); };
 
   const handleSubmit = () => {
     if (!amount || !description) return;
     updateExpense({
-      ...expense,
-      mainCategory,
-      subCategory,
-      amount: parseFloat(amount),
-      description,
-      date,
-      paidBy,
+      ...expense, mainCategory, subCategory, amount: parseFloat(amount), description, date, paidBy,
       boothId: mainCategory === '三方' ? selectedBooth : undefined,
       receiptUrl: receiptUrl || undefined,
     });
@@ -89,31 +82,31 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>编辑开销</DialogTitle>
+          <DialogTitle>{t('expenses.editExpense')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>日期</Label>
+              <Label>{t('expenses.date')}</Label>
               <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>支付人</Label>
+              <Label>{t('expenses.payer')}</Label>
               <Input value={paidBy} onChange={e => setPaidBy(e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>大类</Label>
+              <Label>{t('expenses.mainCategory')}</Label>
               <Select value={mainCategory} onValueChange={v => handleMainCategoryChange(v as ExpenseMainCategory)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {mainCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {mainCategories.map(c => <SelectItem key={c} value={c}>{catDisplayName(c)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>小类</Label>
+              <Label>{t('expenses.subCategory')}</Label>
               <Select value={subCategory} onValueChange={v => setSubCategory(v as ExpenseSubCategory)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -124,56 +117,48 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
           </div>
           {mainCategory === '三方' && project && (
             <div className="space-y-2">
-              <Label>展位</Label>
+              <Label>{t('expenses.booth')}</Label>
               <Select value={selectedBooth} onValueChange={setSelectedBooth}>
-                <SelectTrigger><SelectValue placeholder="选择展位" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('expenses.selectBooth')} /></SelectTrigger>
                 <SelectContent>
-                  {project.booths.map(b => (
-                    <SelectItem key={b.id} value={b.id}>{b.clientName}</SelectItem>
-                  ))}
+                  {project.booths.map(b => <SelectItem key={b.id} value={b.id}>{b.clientName}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           )}
           <div className="space-y-2">
-            <Label>金额 ($)</Label>
+            <Label>{t('expenses.amount')}</Label>
             <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>说明</Label>
+            <Label>{t('expenses.description')}</Label>
             <Input value={description} onChange={e => setDescription(e.target.value)} />
           </div>
-
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              收据/Receipt
-              {uploading && <span className="flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />上传中...</span>}
+              {t('upload.receiptLabel')}
+              {uploading && <span className="flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />{t('upload.uploading')}</span>}
             </Label>
             {receiptPreview ? (
               <div className="relative rounded-lg overflow-hidden border border-border">
                 <img src={receiptPreview} alt="Receipt" className="w-full max-h-48 object-contain bg-muted" />
-                <button
-                  onClick={handleRemoveReceipt}
-                  className="absolute top-2 right-2 rounded-full bg-background/80 p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                >
+                <button onClick={handleRemoveReceipt} className="absolute top-2 right-2 rounded-full bg-background/80 p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors">
                   <X className="h-4 w-4" />
                 </button>
               </div>
             ) : (
               <label className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 p-4 cursor-pointer hover:border-primary/50 transition-colors">
                 <Upload className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">上传收据图片</span>
+                <span className="text-sm text-muted-foreground">{t('upload.receipt')}</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleReceiptUpload} />
               </label>
             )}
           </div>
-
           <div className="flex gap-2">
             <Button variant="destructive" size="sm" onClick={handleDelete} className="gap-1">
-              <Trash2 className="h-4 w-4" />
-              删除
+              <Trash2 className="h-4 w-4" /> {t('common.delete')}
             </Button>
-            <Button className="flex-1" onClick={handleSubmit} disabled={uploading}>保存</Button>
+            <Button className="flex-1" onClick={handleSubmit} disabled={uploading}>{t('common.save')}</Button>
           </div>
         </div>
       </DialogContent>

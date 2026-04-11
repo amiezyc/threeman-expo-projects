@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { ExpenseMainCategory, ExpenseSubCategory, Expense, categoryStructure } from '@/types';
 import { Plus, Upload, X, Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +22,7 @@ interface AddExpenseDialogProps {
 const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
   const { addExpense, projects } = useApp();
   const { profile } = useAuth();
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [mainCategory, setMainCategory] = useState<ExpenseMainCategory>('差旅');
   const [subCategory, setSubCategory] = useState<ExpenseSubCategory>(categoryStructure['差旅'][0]);
@@ -34,6 +36,11 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
   const [uploading, setUploading] = useState(false);
 
   const project = projects.find(p => p.id === projectId);
+
+  const catDisplayName = (cat: ExpenseMainCategory) => {
+    const key = `cat.${cat}` as any;
+    return t(key);
+  };
 
   const handleMainCategoryChange = (cat: ExpenseMainCategory) => {
     setMainCategory(cat);
@@ -57,11 +64,11 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
         }
         if (data.amount) setAmount(String(data.amount));
         if (data.description) setDescription(data.description);
-        toast.success('AI已自动识别收据内容');
+        toast.success(t('ai.receiptRecognized'));
       }
     } catch (e) {
       console.error('Receipt analysis failed:', e);
-      toast.error('收据识别失败，请手动填写');
+      toast.error(t('ai.receiptFailed'));
     } finally {
       setAnalyzing(false);
     }
@@ -82,7 +89,6 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Show preview immediately
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result as string;
@@ -91,12 +97,9 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
     };
     reader.readAsDataURL(file);
 
-    // Upload to storage
     setUploading(true);
     const url = await uploadReceiptToStorage(file);
-    if (url) {
-      setReceiptUrl(url);
-    }
+    if (url) setReceiptUrl(url);
     setUploading(false);
   };
 
@@ -127,20 +130,20 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
       <DialogTrigger asChild>
         <Button size="sm" className="gap-1.5">
           <Plus className="h-4 w-4" />
-          添加开销
+          {t('expenses.addExpense')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>添加开销</DialogTitle>
+          <DialogTitle>{t('expenses.addExpense')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              收据/Receipt
-              {analyzing && <span className="flex items-center gap-1 text-xs text-primary"><Loader2 className="h-3 w-3 animate-spin" />AI识别中...</span>}
-              {uploading && <span className="flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />上传中...</span>}
-              {!analyzing && !uploading && <span className="text-xs text-muted-foreground flex items-center gap-1"><Sparkles className="h-3 w-3" />上传后AI自动识别</span>}
+              {t('upload.receiptLabel')}
+              {analyzing && <span className="flex items-center gap-1 text-xs text-primary"><Loader2 className="h-3 w-3 animate-spin" />{t('ai.recognizing')}</span>}
+              {uploading && <span className="flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />{t('upload.uploading')}</span>}
+              {!analyzing && !uploading && <span className="text-xs text-muted-foreground flex items-center gap-1"><Sparkles className="h-3 w-3" />{t('ai.autoRecognize')}</span>}
             </Label>
             {receiptPreview ? (
               <div className="relative rounded-lg overflow-hidden border border-border">
@@ -155,7 +158,7 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
             ) : (
               <label className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/25 p-4 cursor-pointer hover:border-primary/50 transition-colors">
                 <Upload className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">上传收据图片</span>
+                <span className="text-sm text-muted-foreground">{t('upload.receipt')}</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleReceiptUpload} />
               </label>
             )}
@@ -163,22 +166,22 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>日期</Label>
+              <Label>{t('expenses.date')}</Label>
               <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>大类</Label>
+              <Label>{t('expenses.mainCategory')}</Label>
               <Select value={mainCategory} onValueChange={v => handleMainCategoryChange(v as ExpenseMainCategory)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {mainCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {mainCategories.map(c => <SelectItem key={c} value={c}>{catDisplayName(c)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>小类</Label>
+              <Label>{t('expenses.subCategory')}</Label>
               <Select value={subCategory} onValueChange={v => setSubCategory(v as ExpenseSubCategory)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -188,9 +191,9 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
             </div>
             {mainCategory === '三方' && project && (
               <div className="space-y-2">
-                <Label>展位</Label>
+                <Label>{t('expenses.booth')}</Label>
                 <Select value={selectedBooth} onValueChange={setSelectedBooth}>
-                  <SelectTrigger><SelectValue placeholder="选择展位" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('expenses.selectBooth')} /></SelectTrigger>
                   <SelectContent>
                     {project.booths.map(b => (
                       <SelectItem key={b.id} value={b.id}>{b.clientName}</SelectItem>
@@ -201,15 +204,15 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
             )}
           </div>
           <div className="space-y-2">
-            <Label>金额 ($)</Label>
+            <Label>{t('expenses.amount')}</Label>
             <Input type="number" step="0.01" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>说明</Label>
-            <Input placeholder="开销说明..." value={description} onChange={e => setDescription(e.target.value)} />
+            <Label>{t('expenses.description')}</Label>
+            <Input placeholder={t('expenses.descriptionPlaceholder')} value={description} onChange={e => setDescription(e.target.value)} />
           </div>
 
-          <Button className="w-full" onClick={handleSubmit} disabled={analyzing || uploading}>提交</Button>
+          <Button className="w-full" onClick={handleSubmit} disabled={analyzing || uploading}>{t('expenses.submit')}</Button>
         </div>
       </DialogContent>
     </Dialog>
