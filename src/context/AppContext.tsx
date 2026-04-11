@@ -248,6 +248,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description: expense.description,
       date: expense.date,
       receipt_url: expense.receiptUrl || null,
+      reimbursed: expense.reimbursed ?? false,
     }).eq('id', expense.id);
     setProjects(prev => prev.map(p =>
       p.id === expense.projectId ? { ...p, expenses: p.expenses.map(e => e.id === expense.id ? expense : e) } : p
