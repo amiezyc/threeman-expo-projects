@@ -33,12 +33,36 @@ interface AppContextType {
   deletePayment: (boothId: string, paymentId: string) => void;
 }
 
+const noop = () => {};
+const asyncNoop = async () => {};
+
+const defaultAppContext: AppContextType = {
+  projects: [],
+  loading: true,
+  addExpense: asyncNoop,
+  updateExpense: asyncNoop,
+  deleteExpense: asyncNoop,
+  addWorkLog: asyncNoop,
+  updateWorkLog: asyncNoop,
+  deleteWorkLog: asyncNoop,
+  employees: [],
+  addProject: asyncNoop,
+  updateProject: asyncNoop,
+  deleteProject: asyncNoop,
+  addBooth: asyncNoop,
+  updateBooth: asyncNoop,
+  deleteBooth: asyncNoop,
+  updatePartners: asyncNoop,
+  addPayment: asyncNoop,
+  updatePayment: asyncNoop,
+  deletePayment: asyncNoop,
+};
+
 const AppContext = createContext<AppContextType | null>(null);
 
 export const useApp = () => {
   const ctx = useContext(AppContext);
-  if (!ctx) throw new Error('useApp must be used within AppProvider');
-  return ctx;
+  return ctx ?? defaultAppContext;
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
