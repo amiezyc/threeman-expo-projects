@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, Pencil, Image, CircleDollarSign } from 'luci
 import { useState } from 'react';
 import EditExpenseDialog from './EditExpenseDialog';
 import { useApp } from '@/context/AppContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface ExpenseBreakdownProps {
   expenses: Expense[];
@@ -20,6 +21,7 @@ const mainCategoryColors: Record<ExpenseMainCategory, string> = {
 
 const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
   const { updateExpense } = useApp();
+  const { t } = useLanguage();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
@@ -34,6 +36,11 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
   const toggleReimbursed = (e: React.MouseEvent, item: Expense) => {
     e.stopPropagation();
     updateExpense({ ...item, reimbursed: !item.reimbursed });
+  };
+
+  const catDisplayName = (cat: ExpenseMainCategory) => {
+    const key = `cat.${cat}` as any;
+    return t(key);
   };
 
   const grouped = expenses.reduce<Record<string, Expense[]>>((acc, e) => {
@@ -67,13 +74,13 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
             <span key={name} className="rounded-full bg-muted px-3 py-1">
               {name}: <span className="font-semibold">${info.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               {info.unreimbursed > 0 && info.unreimbursed < info.total && (
-                <span className="text-destructive ml-1">(待收 ${info.unreimbursed.toLocaleString(undefined, { minimumFractionDigits: 2 })})</span>
+                <span className="text-destructive ml-1">({t('expenses.pendingReimburse')} ${info.unreimbursed.toLocaleString(undefined, { minimumFractionDigits: 2 })})</span>
               )}
               {info.unreimbursed === info.total && (
-                <span className="text-destructive ml-1">(未收款)</span>
+                <span className="text-destructive ml-1">({t('expenses.unreimbursedFull')})</span>
               )}
               {info.unreimbursed === 0 && (
-                <span className="text-primary ml-1">(已收款)</span>
+                <span className="text-primary ml-1">({t('expenses.reimbursedFull')})</span>
               )}
             </span>
           ))}
@@ -100,7 +107,7 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
               >
                 <div className="flex items-center gap-3">
                   {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                  <Badge variant="outline" className={mainCategoryColors[cat]}>{cat}</Badge>
+                  <Badge variant="outline" className={mainCategoryColors[cat]}>{catDisplayName(cat)}</Badge>
                 </div>
                 <span className="font-semibold">${catTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </button>
@@ -111,7 +118,7 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
                     <div key={sub} className="space-y-0.5">
                       {data.items.length > 1 && (
                         <div className="flex items-center justify-between rounded-md px-4 py-1.5 text-xs text-muted-foreground">
-                          <span>{sub} ({data.items.length}笔)</span>
+                          <span>{sub} ({data.items.length}{t('expenses.items')})</span>
                           <span className="font-medium">${data.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         </div>
                       )}
@@ -136,10 +143,10 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
                                   ? 'bg-primary/10 text-primary hover:bg-primary/20'
                                   : 'bg-destructive/10 text-destructive hover:bg-destructive/20'
                               }`}
-                              title={item.reimbursed ? '已收款 (点击切换)' : '未收款 (点击切换)'}
+                              title={item.reimbursed ? t('expenses.reimbursedTip') : t('expenses.unreimbursedTip')}
                             >
                               <CircleDollarSign className="h-3 w-3" />
-                              {item.reimbursed ? '已收' : '未收'}
+                              {item.reimbursed ? t('expenses.reimbursed') : t('expenses.unreimbursed')}
                             </button>
                             <span className="font-medium">${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                             <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />

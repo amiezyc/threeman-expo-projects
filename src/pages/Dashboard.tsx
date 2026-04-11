@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useLanguage } from '@/context/LanguageContext';
 import StatCard from '@/components/StatCard';
 import PaymentTracker from '@/components/PaymentTracker';
 import ExpenseBreakdown from '@/components/ExpenseBreakdown';
@@ -10,6 +11,7 @@ import { DollarSign, TrendingUp, TrendingDown, Clock, ChevronDown } from 'lucide
 
 const Dashboard = () => {
   const { projects } = useApp();
+  const { t } = useLanguage();
   const [openProjects, setOpenProjects] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(projects.map(p => [p.id, true]))
   );
@@ -19,8 +21,8 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">总览</h2>
-        <p className="text-muted-foreground text-sm">所有项目的财务概况</p>
+        <h2 className="text-2xl font-bold">{t('dashboard.title')}</h2>
+        <p className="text-muted-foreground text-sm">{t('dashboard.subtitle')}</p>
       </div>
 
       {projects.map(project => {
@@ -43,10 +45,10 @@ const Dashboard = () => {
 
               <CollapsibleContent className="space-y-5 mt-5">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  <StatCard title="合同总额" value={`$${totalContract.toLocaleString()}`} icon={DollarSign} />
-                  <StatCard title="总支出" value={`$${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={TrendingDown} variant="warning" />
-                  <StatCard title="预计利润" value={`$${profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} subtitle={`利润率 ${((profit / totalContract) * 100).toFixed(1)}%`} icon={TrendingUp} variant={profit > 0 ? 'success' : 'destructive'} />
-                  <StatCard title="待收款" value={`$${totalPending.toLocaleString()}`} subtitle={`已收 $${totalReceived.toLocaleString()}`} icon={Clock} variant="warning" />
+                  <StatCard title={t('dashboard.totalContract')} value={`$${totalContract.toLocaleString()}`} icon={DollarSign} />
+                  <StatCard title={t('dashboard.totalExpenses')} value={`$${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} icon={TrendingDown} variant="warning" />
+                  <StatCard title={t('dashboard.estimatedProfit')} value={`$${profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} subtitle={`${t('dashboard.profitMargin')} ${((profit / totalContract) * 100).toFixed(1)}%`} icon={TrendingUp} variant={profit > 0 ? 'success' : 'destructive'} />
+                  <StatCard title={t('dashboard.pendingPayment')} value={`$${totalPending.toLocaleString()}`} subtitle={`${t('dashboard.received')} $${totalReceived.toLocaleString()}`} icon={Clock} variant="warning" />
                 </div>
 
                 {project.partners && project.partners.length > 0 && (
@@ -63,10 +65,10 @@ const Dashboard = () => {
 
                 <div className="glass-card rounded-lg p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold">项目开销</h4>
+                    <h4 className="font-semibold">{t('dashboard.projectExpenses')}</h4>
                     <AddExpenseDialog projectId={project.id} />
                   </div>
-                  <ExpenseBreakdown expenses={projectLevelExpenses} title="差旅 / 物料 / 人工" />
+                  <ExpenseBreakdown expenses={projectLevelExpenses} title={`${t('cat.差旅')} / ${t('cat.物料')} / ${t('cat.人工')}`} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -75,13 +77,13 @@ const Dashboard = () => {
                     return (
                       <div key={booth.id} className="glass-card rounded-lg p-5">
                         <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold">{booth.clientName} 三方费用</h4>
+                          <h4 className="font-semibold">{booth.clientName} {t('dashboard.thirdPartyExpenses')}</h4>
                           <AddExpenseDialog projectId={project.id} boothId={booth.id} />
                         </div>
                         {bExpenses.length > 0 ? (
                           <ExpenseBreakdown expenses={bExpenses} />
                         ) : (
-                          <p className="text-sm text-muted-foreground text-center py-4">暂无三方费用</p>
+                          <p className="text-sm text-muted-foreground text-center py-4">{t('dashboard.noThirdParty')}</p>
                         )}
                       </div>
                     );

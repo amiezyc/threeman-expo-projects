@@ -7,9 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 const AcceptInvitePage = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,8 +24,8 @@ const AcceptInvitePage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirm) { toast.error('两次密码不一致'); return; }
-    if (password.length < 6) { toast.error('密码至少6位'); return; }
+    if (password !== confirm) { toast.error(t('auth.passwordMismatch')); return; }
+    if (password.length < 6) { toast.error(t('auth.passwordTooShort')); return; }
 
     setLoading(true);
     const { data, error } = await supabase.functions.invoke('accept-invite', {
@@ -32,21 +34,20 @@ const AcceptInvitePage = () => {
     setLoading(false);
 
     if (error || data?.error) {
-      toast.error(data?.error || error?.message || '接受邀请失败');
+      toast.error(data?.error || error?.message || t('auth.acceptInviteFailed'));
       return;
     }
 
-    // Set session from returned data so user is immediately signed in
     if (data?.session) {
       await supabase.auth.setSession({
         access_token: data.session.access_token,
         refresh_token: data.session.refresh_token,
       });
-      toast.success('密码设置成功，已自动登录');
+      toast.success(t('auth.passwordSetLogin'));
       const role = data.role || 'employee';
       navigate(role === 'admin' ? '/admin' : '/employee');
     } else {
-      toast.success('密码设置成功，请登录');
+      toast.success(t('auth.passwordSetPleaseLogin'));
       navigate('/login');
     }
   };
@@ -56,8 +57,8 @@ const AcceptInvitePage = () => {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-sm">
           <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">无效的邀请链接</p>
-            <Button className="mt-4" onClick={() => navigate('/login')}>返回登录</Button>
+            <p className="text-muted-foreground">{t('auth.invalidInvite')}</p>
+            <Button className="mt-4" onClick={() => navigate('/login')}>{t('auth.backToLogin')}</Button>
           </CardContent>
         </Card>
       </div>
@@ -68,22 +69,22 @@ const AcceptInvitePage = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">设置密码</CardTitle>
-          <p className="text-sm text-muted-foreground">请设置你的登录密码以完成注册</p>
+          <CardTitle className="text-xl">{t('auth.setPassword')}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t('auth.setPasswordInviteDesc')}</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>新密码</Label>
+              <Label>{t('auth.newPassword')}</Label>
               <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
             </div>
             <div className="space-y-2">
-              <Label>确认密码</Label>
+              <Label>{t('auth.confirmPassword')}</Label>
               <Input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              确认
+              {t('auth.confirm')}
             </Button>
           </form>
         </CardContent>

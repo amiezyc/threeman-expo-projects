@@ -1,17 +1,19 @@
 import { useAuth } from '@/context/AuthContext';
 import { useApp } from '@/context/AppContext';
+import { useLanguage } from '@/context/LanguageContext';
 import ExpenseBreakdown from '@/components/ExpenseBreakdown';
 import AddExpenseDialog from '@/components/AddExpenseDialog';
 
 const EmployeeExpenses = () => {
   const { profile } = useAuth();
   const { projects } = useApp();
+  const { t } = useLanguage();
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">我的开销</h2>
-        <p className="text-muted-foreground text-sm">提交和查看你的开销记录</p>
+        <h2 className="text-2xl font-bold">{t('expenses.myExpenses')}</h2>
+        <p className="text-muted-foreground text-sm">{t('expenses.myExpensesSubtitle')}</p>
       </div>
 
       {projects.map(project => {
@@ -23,13 +25,13 @@ const EmployeeExpenses = () => {
             <h3 className="text-lg font-semibold">{project.name}</h3>
             <div className="glass-card rounded-lg p-5">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold">我的开销 — 合计 ${myTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h4>
+                <h4 className="font-semibold">{t('expenses.myExpensesTotal')} ${myTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h4>
                 <AddExpenseDialog projectId={project.id} />
               </div>
               {myExpenses.length > 0 ? (
                 <ExpenseBreakdown expenses={myExpenses} />
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">暂无开销记录</p>
+                <p className="text-sm text-muted-foreground text-center py-4">{t('expenses.noExpenses')}</p>
               )}
             </div>
           </div>

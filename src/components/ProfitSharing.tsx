@@ -1,5 +1,6 @@
 import { PartnerShare } from '@/types';
 import { Users } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface ProfitSharingProps {
   partners: PartnerShare[];
@@ -7,13 +8,14 @@ interface ProfitSharingProps {
 }
 
 const ProfitSharing = ({ partners, totalProfit }: ProfitSharingProps) => {
+  const { t } = useLanguage();
   return (
     <div className="glass-card rounded-lg p-5 space-y-3">
       <div className="flex items-center gap-2 mb-1">
         <Users className="h-4 w-4 text-primary" />
-        <h4 className="font-semibold">利润分配</h4>
+        <h4 className="font-semibold">{t('partners.profitSharing')}</h4>
         <span className="ml-auto text-sm text-muted-foreground">
-          总利润: <span className={`font-bold ${totalProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+          {t('partners.totalProfit')}: <span className={`font-bold ${totalProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
             ${totalProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </span>
