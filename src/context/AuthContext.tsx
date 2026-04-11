@@ -26,10 +26,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const defaultAuthContext: AuthContextType = {
+  session: null,
+  user: null,
+  profile: null,
+  loading: true,
+  isAdmin: false,
+  mustChangePassword: false,
+  signIn: async () => ({ error: new Error('AuthProvider not mounted') }),
+  signOut: async () => {},
+  inviteUser: async () => ({ error: new Error('AuthProvider not mounted') }),
+};
+
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
+  return ctx ?? defaultAuthContext;
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
