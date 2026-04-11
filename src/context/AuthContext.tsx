@@ -9,6 +9,7 @@ export interface Profile {
   daily_rate: number | null;
   hourly_rate: number | null;
   avatar_url: string | null;
+  must_change_password: boolean;
 }
 
 interface AuthContextType {
@@ -17,6 +18,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   isAdmin: boolean;
+  mustChangePassword: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   inviteUser: (email: string, name: string, role: 'admin' | 'employee') => Promise<{ error: any }>;
@@ -43,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .eq('id', userId)
       .single();
     if (data) {
-      setProfile(data as Profile);
+      setProfile(data as unknown as Profile);
     }
   };
 
@@ -52,7 +54,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(sess);
       setUser(sess?.user ?? null);
       if (sess?.user) {
-        // Use setTimeout to avoid Supabase auth deadlock
         setTimeout(() => fetchProfile(sess.user.id), 0);
       } else {
         setProfile(null);
@@ -96,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       profile,
       loading,
       isAdmin: profile?.role === 'admin',
+      mustChangePassword: profile?.must_change_password === true,
       signIn,
       signOut,
       inviteUser,

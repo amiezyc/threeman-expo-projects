@@ -22,7 +22,6 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify caller is admin
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -39,60 +38,41 @@ Deno.serve(async (req) => {
 
     const { data: callerRole } = await supabase.rpc('get_user_role', { _user_id: caller.id });
     if (callerRole !== 'admin') {
-      return new Response(JSON.stringify({ error: 'Only admins can invite' }), {
+      return new Response(JSON.stringify({ error: 'Only admins can reset passwords' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { email, name, role, daily_rate, hourly_rate } = await req.json();
-    if (!email || !name) {
-      return new Response(JSON.stringify({ error: 'Email and name required' }), {
+    const { userId } = await req.json();
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'userId required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const userRole = role || 'employee';
     const tempPassword = generateTempPassword();
 
-    // Create user with temp password
-    const { data: userData, error: createError } = await supabase.auth.admin.createUser({
-      email,
+    const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
       password: tempPassword,
-      email_confirm: true,
-      user_metadata: { name, role: userRole, must_change_password: true },
+      user_metadata: { must_change_password: true },
     });
 
-    if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
+    if (updateError) {
+      return new Response(JSON.stringify({ error: updateError.message }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Upsert profile
-    if (userData.user) {
-      await supabase.from('profiles').upsert({
-        id: userData.user.id,
-        name,
-        role: userRole,
-        daily_rate: daily_rate || null,
-        hourly_rate: hourly_rate || null,
-        must_change_password: true,
-      });
+    await supabase.from('profiles').update({ must_change_password: true }).eq('id', userId);
 
-      // Audit log
-      await supabase.from('audit_logs').insert({
-        action: 'user_created',
-        target_user_id: userData.user.id,
-        performed_by: caller.id,
-        details: { email, name, role: userRole },
-      });
-    }
+    await supabase.from('audit_logs').insert({
+      action: 'password_reset',
+      target_user_id: userId,
+      performed_by: caller.id,
+      details: {},
+    });
 
-    return new Response(JSON.stringify({
-      success: true,
-      userId: userData.user?.id,
-      tempPassword,
-    }), {
+    return new Response(JSON.stringify({ success: true, tempPassword }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {

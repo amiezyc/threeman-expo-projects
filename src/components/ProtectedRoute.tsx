@@ -8,7 +8,7 @@ interface Props {
 }
 
 const ProtectedRoute = ({ children, requireAdmin = false }: Props) => {
-  const { session, profile, loading } = useAuth();
+  const { session, profile, loading, mustChangePassword } = useAuth();
 
   if (loading) {
     return (
@@ -28,6 +28,10 @@ const ProtectedRoute = ({ children, requireAdmin = false }: Props) => {
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
+  }
+
+  if (mustChangePassword) {
+    return <Navigate to="/change-password" replace />;
   }
 
   if (requireAdmin && profile.role !== 'admin') {
