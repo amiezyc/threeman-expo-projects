@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useApp } from '@/context/AppContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +14,7 @@ import { WorkLog } from '@/types';
 const WorkLogPage = () => {
   const { profile } = useAuth();
   const { projects, addWorkLog, updateWorkLog, deleteWorkLog } = useApp();
+  const { t } = useLanguage();
   const myLogs = projects.flatMap(p => p.workLogs).filter(w => w.userId === profile?.id);
   const totalDays = myLogs.length;
   const totalPay = myLogs.reduce((s, w) => s + (w.rateType === 'hourly' ? w.dailyRate * (w.hours || 0) : w.dailyRate), 0);
@@ -66,44 +68,44 @@ const WorkLogPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">工时记录</h2>
-        <p className="text-muted-foreground text-sm">记录你的工作天数</p>
+        <h2 className="text-2xl font-bold">{t('worklog.title')}</h2>
+        <p className="text-muted-foreground text-sm">{t('worklog.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <StatCard title="总工作天数" value={`${totalDays}天`} icon={Calendar} />
-        <StatCard title="应得工资" value={`$${totalPay.toLocaleString()}`} icon={DollarSign} variant="success" />
+        <StatCard title={t('worklog.totalDays')} value={`${totalDays}${t('employees.days')}`} icon={Calendar} />
+        <StatCard title={t('worklog.totalPay')} value={`$${totalPay.toLocaleString()}`} icon={DollarSign} variant="success" />
       </div>
 
       <div className="glass-card rounded-lg p-5 space-y-4">
-        <h4 className="font-semibold">添加工时</h4>
+        <h4 className="font-semibold">{t('worklog.addLog')}</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label>项目</Label>
+            <Label>{t('employees.project')}</Label>
             <Select value={selectedProject} onValueChange={setSelectedProject}>
-              <SelectTrigger><SelectValue placeholder="选择项目" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t('worklog.selectProject')} /></SelectTrigger>
               <SelectContent>
                 {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>日期</Label>
+            <Label>{t('employees.date')}</Label>
             <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
           <div className="flex items-end">
             <Button onClick={handleAddLog} className="w-full" disabled={submitting}>
-              {submitting ? '提交中...' : '记录工时'}
+              {submitting ? t('worklog.submitting') : t('worklog.recordLog')}
             </Button>
           </div>
         </div>
       </div>
 
       <div className="glass-card rounded-lg p-5">
-        <h4 className="font-semibold mb-3">工时历史</h4>
+        <h4 className="font-semibold mb-3">{t('worklog.history')}</h4>
         <div className="space-y-2">
           {myLogs.length === 0 ? (
-            <p className="text-center text-muted-foreground py-4 text-sm">暂无工时记录</p>
+            <p className="text-center text-muted-foreground py-4 text-sm">{t('worklog.noLogs')}</p>
           ) : (
             myLogs.map(log => (
               <div key={log.id} className="flex items-center justify-between rounded-md border border-border/50 bg-muted/30 px-4 py-3 group">
@@ -114,7 +116,7 @@ const WorkLogPage = () => {
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-muted-foreground">{projects.find(p => p.id === log.projectId)?.name}</span>
                   <span className="font-bold">
-                    {log.rateType === 'hourly' ? `$${log.dailyRate}/hr × ${log.hours || 0}h` : `$${log.dailyRate}/天`}
+                    {log.rateType === 'hourly' ? `$${log.dailyRate}${t('employees.perHour')} × ${log.hours || 0}h` : `$${log.dailyRate}${t('employees.perDay')}`}
                   </span>
                   <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => openEdit(log)}>
                     <Pencil className="h-3.5 w-3.5" />
@@ -128,10 +130,10 @@ const WorkLogPage = () => {
 
       <Dialog open={!!editLog} onOpenChange={open => !open && setEditLog(null)}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>编辑工时</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('worklog.editLog')}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>项目</Label>
+              <Label>{t('employees.project')}</Label>
               <Select value={editProject} onValueChange={setEditProject}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -140,21 +142,21 @@ const WorkLogPage = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>日期</Label>
+              <Label>{t('employees.date')}</Label>
               <Input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>日薪 ($)</Label>
+              <Label>{t('employees.dailyRate')} ($)</Label>
               <Input type="number" value={editRate} onChange={e => setEditRate(e.target.value)} />
             </div>
           </div>
           <DialogFooter className="flex-row justify-between sm:justify-between">
             <Button variant="destructive" onClick={handleDeleteLog} className="gap-1">
-              <Trash2 className="h-4 w-4" /> 删除
+              <Trash2 className="h-4 w-4" /> {t('common.delete')}
             </Button>
             <div className="flex gap-2 ml-auto">
-              <Button variant="outline" onClick={() => setEditLog(null)}>取消</Button>
-              <Button onClick={handleSaveEdit}>保存</Button>
+              <Button variant="outline" onClick={() => setEditLog(null)}>{t('common.cancel')}</Button>
+              <Button onClick={handleSaveEdit}>{t('common.save')}</Button>
             </div>
           </DialogFooter>
         </DialogContent>

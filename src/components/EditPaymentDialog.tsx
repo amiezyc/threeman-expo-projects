@@ -10,6 +10,7 @@ import { Payment, PaymentStatus } from '@/types';
 import { uploadFile } from '@/lib/uploadFile';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface EditPaymentDialogProps {
   payment: Payment;
@@ -19,6 +20,7 @@ interface EditPaymentDialogProps {
 }
 
 const EditPaymentDialog = ({ payment, open, onOpenChange, onSave }: EditPaymentDialogProps) => {
+  const { t } = useLanguage();
   const [paymentType, setPaymentType] = useState(payment.type);
   const [amount, setAmount] = useState(String(payment.amount));
   const [status, setStatus] = useState<PaymentStatus>(payment.status);
@@ -38,25 +40,23 @@ const EditPaymentDialog = ({ payment, open, onOpenChange, onSave }: EditPaymentD
       const { url } = await uploadFile('receipts', 'contracts', file);
       setDocumentUrl(url);
       setUploadedFile(file);
-      toast.success('文件已上传');
+      toast.success(t('upload.uploaded'));
     } catch {
-      toast.error('上传失败');
+      toast.error(t('upload.uploadFailed'));
     } finally {
       setUploading(false);
     }
   };
 
   const handleExtract = async () => {
-    if (!uploadedFile) { toast.error('请先上传文件'); return; }
+    if (!uploadedFile) { toast.error(t('ai.uploadFirst')); return; }
     setAnalyzing(true);
     try {
       const reader = new FileReader();
       reader.onload = async () => {
         try {
           const base64 = reader.result as string;
-          const { data, error } = await supabase.functions.invoke('analyze-contract', {
-            body: { imageBase64: base64 },
-          });
+          const { data, error } = await supabase.functions.invoke('analyze-contract', { body: { imageBase64: base64 } });
           if (error) throw error;
           if (data) {
             if (data.depositAmount > 0 && paymentType === 'deposit') setAmount(String(data.depositAmount));
@@ -66,31 +66,26 @@ const EditPaymentDialog = ({ payment, open, onOpenChange, onSave }: EditPaymentD
             if (data.isReceived) setStatus('received');
             else if (data.invoiceDate) setStatus('invoiced');
             if (data.notes) setNotes(data.notes);
-            toast.success('AI识别完成');
+            toast.success(t('ai.recognized'));
           }
         } catch {
-          toast.error('AI识别失败');
+          toast.error(t('ai.recognizeFailed'));
         } finally {
           setAnalyzing(false);
         }
       };
       reader.readAsDataURL(uploadedFile);
     } catch {
-      toast.error('识别失败');
+      toast.error(t('ai.recognizeFailed'));
       setAnalyzing(false);
     }
   };
 
   const handleSave = () => {
-    if (!amount) { toast.error('请填写金额'); return; }
+    if (!amount) { toast.error(t('payments.fillAmount')); return; }
     onSave({
-      ...payment,
-      type: paymentType,
-      amount: Number(amount),
-      status,
-      invoiceDate: invoiceDate || undefined,
-      notes: notes || undefined,
-      documentUrl: documentUrl || undefined,
+      ...payment, type: paymentType, amount: Number(amount), status,
+      invoiceDate: invoiceDate || undefined, notes: notes || undefined, documentUrl: documentUrl || undefined,
     });
     onOpenChange(false);
   };
@@ -99,69 +94,63 @@ const EditPaymentDialog = ({ payment, open, onOpenChange, onSave }: EditPaymentD
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>编辑款项</DialogTitle>
+          <DialogTitle>{t('payments.editPayment')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>上传合同/Invoice</Label>
+            <Label>{t('upload.contract')}</Label>
             <input ref={fileInputRef} type="file" accept="image/*,.pdf" onChange={handleUpload} className="hidden" />
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                {uploading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />上传中...</> : <><Upload className="h-4 w-4 mr-2" />选择文件</>}
+                {uploading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t('upload.uploading')}</> : <><Upload className="h-4 w-4 mr-2" />{t('upload.selectFile')}</>}
               </Button>
               <Button variant="secondary" onClick={handleExtract} disabled={!uploadedFile || analyzing}>
                 {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                <span className="ml-1">识别</span>
+                <span className="ml-1">{t('ai.recognize')}</span>
               </Button>
             </div>
             {documentUrl && (
               <div className="flex items-center gap-2 text-xs text-success">
                 <FileText className="h-3 w-3" />
-                <span>文件已上传</span>
-                <a href={documentUrl} target="_blank" rel="noopener noreferrer" className="underline">查看</a>
+                <span>{t('upload.uploaded')}</span>
+                <a href={documentUrl} target="_blank" rel="noopener noreferrer" className="underline">{t('upload.view')}</a>
               </div>
             )}
           </div>
-
           <div className="space-y-2">
-            <Label>类型</Label>
+            <Label>{t('payments.type')}</Label>
             <Select value={paymentType} onValueChange={(v) => setPaymentType(v as 'deposit' | 'balance')}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="deposit">首款 (Deposit)</SelectItem>
-                <SelectItem value="balance">尾款 (Balance)</SelectItem>
+                <SelectItem value="deposit">{t('payments.deposit')}</SelectItem>
+                <SelectItem value="balance">{t('payments.balance')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
           <div className="space-y-2">
-            <Label>金额 ($)</Label>
+            <Label>{t('payments.amount')}</Label>
             <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" />
           </div>
-
           <div className="space-y-2">
-            <Label>状态</Label>
+            <Label>{t('payments.status')}</Label>
             <Select value={status} onValueChange={(v) => setStatus(v as PaymentStatus)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="pending">待处理</SelectItem>
-                <SelectItem value="invoiced">已开票</SelectItem>
-                <SelectItem value="received">已收款</SelectItem>
+                <SelectItem value="pending">{t('payments.status.pending')}</SelectItem>
+                <SelectItem value="invoiced">{t('payments.status.invoiced')}</SelectItem>
+                <SelectItem value="received">{t('payments.status.received')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
           <div className="space-y-2">
-            <Label>Invoice 日期</Label>
+            <Label>{t('payments.invoiceDate')}</Label>
             <Input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} />
           </div>
-
           <div className="space-y-2">
-            <Label>备注</Label>
-            <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="备注信息" rows={2} />
+            <Label>{t('payments.notes')}</Label>
+            <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('payments.notesPlaceholder')} rows={2} />
           </div>
-
-          <Button className="w-full" onClick={handleSave}>保存</Button>
+          <Button className="w-full" onClick={handleSave}>{t('common.save')}</Button>
         </div>
       </DialogContent>
     </Dialog>
