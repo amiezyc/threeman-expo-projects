@@ -16,6 +16,7 @@ const mainCategoryColors: Record<ExpenseMainCategory, string> = {
   '物料': 'bg-accent/10 text-accent border-accent/20',
   '人工': 'bg-warning/10 text-warning border-warning/20',
   '三方': 'bg-destructive/10 text-destructive border-destructive/20',
+  '电费': 'bg-chart-4/10 text-chart-4 border-chart-4/20',
   '其他': 'bg-muted text-muted-foreground',
 };
 
@@ -136,6 +137,11 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
                             {item.receiptUrl && <Image className="h-3 w-3 text-primary" />}
                           </button>
                           <div className="flex items-center gap-2">
+                            {item.isClientCost && (
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                {t('expenses.clientCost')}
+                              </span>
+                            )}
                             <button
                               onClick={(e) => toggleReimbursed(e, item)}
                               className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${
