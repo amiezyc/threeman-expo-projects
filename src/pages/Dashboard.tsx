@@ -27,7 +27,7 @@ const Dashboard = () => {
 
       {projects.map(project => {
         const totalContract = project.booths.reduce((s, b) => s + b.totalContract, 0);
-        const totalExpenses = project.expenses.reduce((s, e) => s + e.amount, 0);
+        const totalExpenses = project.expenses.filter(e => !e.isClientCost).reduce((s, e) => s + e.amount, 0);
         const totalReceived = project.booths.flatMap(b => b.payments).filter(p => p.status === 'received').reduce((s, p) => s + p.amount, 0);
         const totalPending = project.booths.flatMap(b => b.payments).filter(p => p.status !== 'received').reduce((s, p) => s + p.amount, 0);
         const profit = totalContract - totalExpenses;
@@ -68,7 +68,7 @@ const Dashboard = () => {
                     <h4 className="font-semibold">{t('dashboard.projectExpenses')}</h4>
                     <AddExpenseDialog projectId={project.id} />
                   </div>
-                  <ExpenseBreakdown expenses={projectLevelExpenses} title={`${t('cat.差旅')} / ${t('cat.物料')} / ${t('cat.人工')}`} />
+                  <ExpenseBreakdown expenses={projectLevelExpenses} title={`${t('cat.差旅')} / ${t('cat.物料')} / ${t('cat.人工')} / ${t('cat.电费')}`} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
