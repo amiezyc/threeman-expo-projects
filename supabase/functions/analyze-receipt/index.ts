@@ -31,12 +31,13 @@ serve(async (req) => {
           {
             role: "system",
             content: `You are an expense receipt analyzer for a booth construction company. Analyze the receipt image and extract:
-1. mainCategory: one of 差旅, 物料, 人工, 三方, 其他
+1. mainCategory: one of 差旅, 物料, 人工, 三方, 电费, 其他
 2. subCategory: based on mainCategory:
    - 差旅: Airbnb, Flight, Hotel, Uber, Gas, Parking, 餐補, 租車, Walmart
    - 物料: Amazon, 画面, 铝合金备料, 地毯, 桌椅, 电视, 其他物料
    - 人工: 日薪, 人工搭建, 撤展
-   - 三方: 吊顶, 劳工, 木柜过磅, 型材物料过磅, 布/吊顶过磅, 电费, 其他三方
+   - 三方: 吊顶, 劳工, 木柜过磅, 型材物料过磅, 布/吊顶过磅, 其他三方
+   - 电费: 电费, 其他电费
    - 其他: 其他
 3. amount: the total amount on the receipt (number only)
 4. description: brief description of what was purchased
@@ -60,7 +61,7 @@ Return ONLY a JSON object with these 4 fields. If uncertain about category, use 
               parameters: {
                 type: "object",
                 properties: {
-                  mainCategory: { type: "string", enum: ["差旅", "物料", "人工", "三方", "其他"] },
+                  mainCategory: { type: "string", enum: ["差旅", "物料", "人工", "三方", "电费", "其他"] },
                   subCategory: { type: "string" },
                   amount: { type: "number" },
                   description: { type: "string" },

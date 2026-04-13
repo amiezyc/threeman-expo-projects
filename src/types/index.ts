@@ -10,20 +10,22 @@ export interface User {
   hourlyRate?: number;
 }
 
-export type ExpenseMainCategory = '差旅' | '物料' | '人工' | '三方' | '其他';
+export type ExpenseMainCategory = '差旅' | '物料' | '人工' | '三方' | '电费' | '其他';
 
 export type ExpenseSubCategory =
   | 'Airbnb' | 'Flight' | 'Hotel' | 'Uber' | 'Gas' | 'Parking' | '餐補' | '租車' | 'Walmart'
   | 'Amazon' | '其他物料' | '画面' | '铝合金备料' | '地毯' | '桌椅' | '电视'
-  | '吊顶' | '劳工' | '木柜过磅' | '型材物料过磅' | '布/吊顶过磅' | '电费' | '其他三方'
+  | '吊顶' | '劳工' | '木柜过磅' | '型材物料过磅' | '布/吊顶过磅' | '其他三方'
   | '日薪' | '人工搭建' | '撤展'
+  | '电费' | '其他电费'
   | '其他';
 
 export const categoryStructure: Record<ExpenseMainCategory, ExpenseSubCategory[]> = {
   '差旅': ['Airbnb', 'Flight', 'Hotel', 'Uber', 'Gas', 'Parking', '餐補', '租車', 'Walmart'],
   '物料': ['Amazon', '画面', '铝合金备料', '地毯', '桌椅', '电视', '其他物料'],
   '人工': ['日薪', '人工搭建', '撤展'],
-  '三方': ['吊顶', '劳工', '木柜过磅', '型材物料过磅', '布/吊顶过磅', '电费', '其他三方'],
+  '三方': ['吊顶', '劳工', '木柜过磅', '型材物料过磅', '布/吊顶过磅', '其他三方'],
+  '电费': ['电费', '其他电费'],
   '其他': ['其他'],
 };
 
@@ -39,6 +41,7 @@ export interface Expense {
   date: string;
   receiptUrl?: string;
   reimbursed?: boolean;
+  isClientCost?: boolean;
 }
 
 export interface WorkLog {

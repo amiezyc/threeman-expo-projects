@@ -102,10 +102,10 @@ const ProjectsPage = () => {
 
       {projects.map(project => {
         const totalContract = project.booths.reduce((s, b) => s + b.totalContract, 0);
-        const totalExpenses = project.expenses.reduce((s, e) => s + e.amount, 0);
+        const totalExpenses = project.expenses.filter(e => !e.isClientCost).reduce((s, e) => s + e.amount, 0);
         const profit = totalContract - totalExpenses;
 
-        const sharedExpenses = project.expenses.filter(e => !e.boothId && ['差旅', '物料', '人工'].includes(e.mainCategory));
+        const sharedExpenses = project.expenses.filter(e => !e.boothId && ['差旅', '物料', '人工', '电费'].includes(e.mainCategory));
         const sharedTotal = sharedExpenses.reduce((s, e) => s + e.amount, 0);
 
         const isOpen = openProjects[project.id] ?? false;

@@ -8,6 +8,7 @@ import { useApp } from '@/context/AppContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { ExpenseMainCategory, ExpenseSubCategory, Expense, categoryStructure } from '@/types';
 import { Trash2, Upload, X, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 const mainCategories = Object.keys(categoryStructure) as ExpenseMainCategory[];
 
@@ -30,6 +31,7 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
   const [receiptUrl, setReceiptUrl] = useState(expense.receiptUrl || '');
   const [receiptPreview, setReceiptPreview] = useState(expense.receiptUrl || '');
   const [uploading, setUploading] = useState(false);
+  const [isClientCost, setIsClientCost] = useState(expense.isClientCost ?? false);
 
   const project = projects.find(p => p.id === expense.projectId);
 
@@ -69,6 +71,7 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
       ...expense, mainCategory, subCategory, amount: parseFloat(amount), description, date, paidBy,
       boothId: mainCategory === '三方' ? selectedBooth : undefined,
       receiptUrl: receiptUrl || undefined,
+      isClientCost: mainCategory === '三方' ? isClientCost : false,
     });
     onOpenChange(false);
   };
@@ -130,6 +133,12 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
             <Label>{t('expenses.amount')}</Label>
             <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
           </div>
+          {mainCategory === '三方' && (
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <Label className="text-sm">{t('expenses.isClientCost')}</Label>
+              <Switch checked={isClientCost} onCheckedChange={setIsClientCost} />
+            </div>
+          )}
           <div className="space-y-2">
             <Label>{t('expenses.description')}</Label>
             <Input value={description} onChange={e => setDescription(e.target.value)} />

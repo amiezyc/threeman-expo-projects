@@ -107,6 +107,7 @@ export type Database = {
           date: string
           description: string
           id: string
+          is_client_cost: boolean
           main_category: string
           paid_by: string
           project_id: string
@@ -122,6 +123,7 @@ export type Database = {
           date: string
           description?: string
           id?: string
+          is_client_cost?: boolean
           main_category: string
           paid_by: string
           project_id: string
@@ -137,6 +139,7 @@ export type Database = {
           date?: string
           description?: string
           id?: string
+          is_client_cost?: boolean
           main_category?: string
           paid_by?: string
           project_id?: string

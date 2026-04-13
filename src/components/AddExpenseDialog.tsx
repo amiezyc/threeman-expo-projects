@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { ExpenseMainCategory, ExpenseSubCategory, Expense, categoryStructure } from '@/types';
 import { Plus, Upload, X, Loader2, Sparkles } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -34,6 +35,7 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
   const [receiptPreview, setReceiptPreview] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [isClientCost, setIsClientCost] = useState(false);
 
   const project = projects.find(p => p.id === projectId);
 
@@ -116,6 +118,7 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
       description,
       date,
       receiptUrl: receiptUrl || undefined,
+      isClientCost: mainCategory === '三方' ? isClientCost : false,
     };
     addExpense(expense);
     setOpen(false);
@@ -123,6 +126,7 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
     setDescription('');
     setReceiptUrl('');
     setReceiptPreview('');
+    setIsClientCost(false);
   };
 
   return (
@@ -207,6 +211,12 @@ const AddExpenseDialog = ({ projectId, boothId }: AddExpenseDialogProps) => {
             <Label>{t('expenses.amount')}</Label>
             <Input type="number" step="0.01" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)} />
           </div>
+          {mainCategory === '三方' && (
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <Label className="text-sm">{t('expenses.isClientCost')}</Label>
+              <Switch checked={isClientCost} onCheckedChange={setIsClientCost} />
+            </div>
+          )}
           <div className="space-y-2">
             <Label>{t('expenses.description')}</Label>
             <Input placeholder={t('expenses.descriptionPlaceholder')} value={description} onChange={e => setDescription(e.target.value)} />
