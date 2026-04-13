@@ -274,7 +274,13 @@ const translations = {
   'cat.物料': { zh: '物料', en: 'Materials' },
   'cat.人工': { zh: '人工', en: 'Labor' },
   'cat.三方': { zh: '三方', en: '3rd Party' },
+  'cat.电费': { zh: '电费', en: 'Electricity' },
   'cat.其他': { zh: '其他', en: 'Other' },
+
+  // Expense: client cost
+  'expenses.clientCost': { zh: '客户付', en: 'Client Cost' },
+  'expenses.ourCost': { zh: '我方垫付', en: 'Our Cost' },
+  'expenses.isClientCost': { zh: '客户承担（不计入成本）', en: 'Client pays (not our cost)' },
 } as const;
 
 type TranslationKey = keyof typeof translations;
