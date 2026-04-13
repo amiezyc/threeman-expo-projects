@@ -134,6 +134,11 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
                           >
                             <span className="text-muted-foreground">{data.items.length === 1 ? sub : ''}</span>
                             <span className="text-xs text-muted-foreground/80">{item.description}</span>
+                            {item.unitPrice != null && item.weight != null && (
+                              <span className="text-xs text-muted-foreground/60">
+                                (${item.unitPrice}/lb × {item.weight}lb)
+                              </span>
+                            )}
                             {item.receiptUrl && <Image className="h-3 w-3 text-primary" />}
                           </button>
                           <div className="flex items-center gap-2">
