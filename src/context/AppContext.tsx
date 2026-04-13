@@ -130,6 +130,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             receiptUrl: e.receipt_url || undefined,
             reimbursed: !!e.reimbursed,
             isClientCost: !!e.is_client_cost,
+            unitPrice: e.unit_price != null ? Number(e.unit_price) : undefined,
+            weight: e.weight != null ? Number(e.weight) : undefined,
           }));
 
         const workLogs: WorkLog[] = workLogRows
@@ -256,6 +258,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       date: expense.date,
       receipt_url: expense.receiptUrl || null,
       is_client_cost: expense.isClientCost ?? false,
+      unit_price: expense.unitPrice ?? null,
+      weight: expense.weight ?? null,
     }).select().single();
     if (error) { toast.error('保存失败'); return; }
     const newExpense = { ...expense, id: data.id };
@@ -276,6 +280,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       receipt_url: expense.receiptUrl || null,
       reimbursed: expense.reimbursed ?? false,
       is_client_cost: expense.isClientCost ?? false,
+      unit_price: expense.unitPrice ?? null,
+      weight: expense.weight ?? null,
     }).eq('id', expense.id);
     setProjects(prev => prev.map(p =>
       p.id === expense.projectId ? { ...p, expenses: p.expenses.map(e => e.id === expense.id ? expense : e) } : p
