@@ -1,7 +1,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Receipt, Users, FolderOpen, UserPlus, LogOut, Globe } from 'lucide-react';
+import { LayoutDashboard, Receipt, Users, FolderOpen, UserPlus, LogOut, Globe, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
@@ -19,6 +19,7 @@ const AppSidebar = () => {
         { label: t('nav.payments'), icon: Receipt, path: '/admin/payments' },
         { label: t('nav.employees'), icon: Users, path: '/admin/employees' },
         { label: t('nav.users'), icon: UserPlus, path: '/admin/invite' },
+        { label: t('nav.categories'), icon: Settings, path: '/admin/categories' },
       ]
     : [
         { label: t('nav.myDashboard'), icon: LayoutDashboard, path: '/employee' },

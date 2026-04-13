@@ -100,6 +100,38 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          parent_id: string | null
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number
@@ -115,7 +147,9 @@ export type Database = {
           reimbursed: boolean
           source_id: string | null
           sub_category: string
+          unit_price: number | null
           user_id: string | null
+          weight: number | null
         }
         Insert: {
           amount?: number
@@ -131,7 +165,9 @@ export type Database = {
           reimbursed?: boolean
           source_id?: string | null
           sub_category: string
+          unit_price?: number | null
           user_id?: string | null
+          weight?: number | null
         }
         Update: {
           amount?: number
@@ -147,7 +183,9 @@ export type Database = {
           reimbursed?: boolean
           source_id?: string | null
           sub_category?: string
+          unit_price?: number | null
           user_id?: string | null
+          weight?: number | null
         }
         Relationships: [
           {

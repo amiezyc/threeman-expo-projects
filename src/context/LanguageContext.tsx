@@ -281,6 +281,16 @@ const translations = {
   'expenses.clientCost': { zh: '客户付', en: 'Client Cost' },
   'expenses.ourCost': { zh: '我方垫付', en: 'Our Cost' },
   'expenses.isClientCost': { zh: '客户承担（不计入成本）', en: 'Client pays (not our cost)' },
+  'expenses.unitPrice': { zh: '单价 ($/lb)', en: 'Unit Price ($/lb)' },
+  'expenses.weight': { zh: '重量 (lb)', en: 'Weight (lb)' },
+  'expenses.autoCalc': { zh: '金额 = 单价 × 重量', en: 'Amount = Unit Price × Weight' },
+
+  // Categories management
+  'categories.title': { zh: '分类管理', en: 'Category Management' },
+  'categories.subtitle': { zh: '管理开销的大类和小类', en: 'Manage expense categories and sub-categories' },
+  'categories.addMain': { zh: '添加大类', en: 'Add Category' },
+  'categories.addSub': { zh: '添加小类...', en: 'Add sub-category...' },
+  'nav.categories': { zh: '分类管理', en: 'Categories' },
 } as const;
 
 type TranslationKey = keyof typeof translations;

@@ -18,6 +18,7 @@ import EmployeesPage from "./pages/EmployeesPage";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import InviteUserPage from "./pages/InviteUserPage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
+import CategoriesPage from "./pages/CategoriesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -68,6 +69,7 @@ const App = () => (
               <Route path="/admin/payments" element={<PaymentsPage />} />
               <Route path="/admin/employees" element={<EmployeesPage />} />
               <Route path="/admin/invite" element={<InviteUserPage />} />
+              <Route path="/admin/categories" element={<CategoriesPage />} />
             </Route>
 
             {/* Employee routes */}
