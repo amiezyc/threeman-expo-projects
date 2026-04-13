@@ -42,6 +42,8 @@ export interface Expense {
   receiptUrl?: string;
   reimbursed?: boolean;
   isClientCost?: boolean;
+  unitPrice?: number;
+  weight?: number;
 }
 
 export interface WorkLog {
