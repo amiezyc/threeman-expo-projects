@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,11 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useApp } from '@/context/AppContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { ExpenseMainCategory, ExpenseSubCategory, Expense, categoryStructure } from '@/types';
+import { useCategories } from '@/hooks/useCategories';
+import { Expense } from '@/types';
 import { Trash2, Upload, X, Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-
-const mainCategories = Object.keys(categoryStructure) as ExpenseMainCategory[];
 
 interface EditExpenseDialogProps {
   expense: Expense;
@@ -21,9 +20,16 @@ interface EditExpenseDialogProps {
 const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogProps) => {
   const { updateExpense, deleteExpense, projects } = useApp();
   const { t } = useLanguage();
-  const [mainCategory, setMainCategory] = useState<ExpenseMainCategory>(expense.mainCategory);
-  const [subCategory, setSubCategory] = useState<ExpenseSubCategory>(expense.subCategory);
+  const { mainCategories, getSubCategories } = useCategories();
+
+  // Find main category id by name
+  const initMainId = mainCategories.find(c => c.name === expense.mainCategory)?.id || '';
+
+  const [mainCategoryId, setMainCategoryId] = useState(initMainId);
+  const [subCategoryName, setSubCategoryName] = useState(expense.subCategory);
   const [amount, setAmount] = useState(expense.amount.toString());
+  const [unitPrice, setUnitPrice] = useState(expense.unitPrice?.toString() || '');
+  const [weight, setWeight] = useState(expense.weight?.toString() || '');
   const [description, setDescription] = useState(expense.description);
   const [date, setDate] = useState(expense.date);
   const [paidBy, setPaidBy] = useState(expense.paidBy);
@@ -34,16 +40,42 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
   const [isClientCost, setIsClientCost] = useState(expense.isClientCost ?? false);
 
   const project = projects.find(p => p.id === expense.projectId);
+  const selectedMain = mainCategories.find(c => c.id === mainCategoryId);
+  const selectedMainName = selectedMain?.name || expense.mainCategory;
+  const subCats = mainCategoryId ? getSubCategories(mainCategoryId) : [];
+  const isWeighType = subCategoryName === '过磅';
 
-  const catDisplayName = (cat: ExpenseMainCategory) => {
-    const key = `cat.${cat}` as any;
-    return t(key);
+  // Update mainCategoryId when categories load
+  useEffect(() => {
+    if (mainCategories.length > 0 && !mainCategoryId) {
+      const found = mainCategories.find(c => c.name === expense.mainCategory);
+      if (found) setMainCategoryId(found.id);
+    }
+  }, [mainCategories, mainCategoryId, expense.mainCategory]);
+
+  // Auto-calc for 过磅
+  useEffect(() => {
+    if (isWeighType && unitPrice && weight) {
+      setAmount((parseFloat(unitPrice) * parseFloat(weight)).toFixed(2));
+    }
+  }, [unitPrice, weight, isWeighType]);
+
+  const catDisplayName = (name: string) => {
+    const key = `cat.${name}` as any;
+    const val = t(key);
+    return val !== key ? val : name;
   };
 
-  const handleMainCategoryChange = (cat: ExpenseMainCategory) => {
-    setMainCategory(cat);
-    setSubCategory(categoryStructure[cat][0]);
-    if (cat !== '三方') setSelectedBooth('');
+  const handleMainChange = (id: string) => {
+    setMainCategoryId(id);
+    const subs = getSubCategories(id);
+    setSubCategoryName(subs.length > 0 ? subs[0].name : '');
+    setUnitPrice(''); setWeight('');
+  };
+
+  const handleSubChange = (name: string) => {
+    setSubCategoryName(name);
+    if (name !== '过磅') { setUnitPrice(''); setWeight(''); }
   };
 
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,21 +89,23 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
       const { uploadFile } = await import('@/lib/uploadFile');
       const { url } = await uploadFile('receipts', expense.projectId, file);
       setReceiptUrl(url);
-    } catch (err) {
-      console.error('Upload failed:', err);
-    }
+    } catch (err) { console.error('Upload failed:', err); }
     setUploading(false);
   };
-
-  const handleRemoveReceipt = () => { setReceiptUrl(''); setReceiptPreview(''); };
 
   const handleSubmit = () => {
     if (!amount || !description) return;
     updateExpense({
-      ...expense, mainCategory, subCategory, amount: parseFloat(amount), description, date, paidBy,
-      boothId: mainCategory === '三方' ? selectedBooth : undefined,
+      ...expense,
+      mainCategory: selectedMainName as any,
+      subCategory: subCategoryName as any,
+      amount: parseFloat(amount),
+      description, date, paidBy,
+      boothId: selectedMainName === '三方' ? selectedBooth : undefined,
       receiptUrl: receiptUrl || undefined,
-      isClientCost: mainCategory === '三方' ? isClientCost : false,
+      isClientCost: selectedMainName === '三方' ? isClientCost : false,
+      unitPrice: isWeighType && unitPrice ? parseFloat(unitPrice) : undefined,
+      weight: isWeighType && weight ? parseFloat(weight) : undefined,
     });
     onOpenChange(false);
   };
@@ -84,9 +118,7 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t('expenses.editExpense')}</DialogTitle>
-        </DialogHeader>
+        <DialogHeader><DialogTitle>{t('expenses.editExpense')}</DialogTitle></DialogHeader>
         <div className="space-y-4 pt-2">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -101,24 +133,24 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{t('expenses.mainCategory')}</Label>
-              <Select value={mainCategory} onValueChange={v => handleMainCategoryChange(v as ExpenseMainCategory)}>
+              <Select value={mainCategoryId} onValueChange={handleMainChange}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {mainCategories.map(c => <SelectItem key={c} value={c}>{catDisplayName(c)}</SelectItem>)}
+                  {mainCategories.map(c => <SelectItem key={c.id} value={c.id}>{catDisplayName(c.name)}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>{t('expenses.subCategory')}</Label>
-              <Select value={subCategory} onValueChange={v => setSubCategory(v as ExpenseSubCategory)}>
+              <Select value={subCategoryName} onValueChange={handleSubChange}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {categoryStructure[mainCategory].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {subCats.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          {mainCategory === '三方' && project && (
+          {selectedMainName === '三方' && project && (
             <div className="space-y-2">
               <Label>{t('expenses.booth')}</Label>
               <Select value={selectedBooth} onValueChange={setSelectedBooth}>
@@ -129,11 +161,28 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
               </Select>
             </div>
           )}
+
+          {isWeighType && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">{t('expenses.autoCalc')}</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">{t('expenses.unitPrice')}</Label>
+                  <Input type="number" step="0.01" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">{t('expenses.weight')}</Label>
+                  <Input type="number" step="0.01" value={weight} onChange={e => setWeight(e.target.value)} />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>{t('expenses.amount')}</Label>
-            <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
+            <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} disabled={isWeighType && !!unitPrice && !!weight} />
           </div>
-          {mainCategory === '三方' && (
+          {selectedMainName === '三方' && (
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
               <Label className="text-sm">{t('expenses.isClientCost')}</Label>
               <Switch checked={isClientCost} onCheckedChange={setIsClientCost} />
@@ -151,7 +200,7 @@ const EditExpenseDialog = ({ expense, open, onOpenChange }: EditExpenseDialogPro
             {receiptPreview ? (
               <div className="relative rounded-lg overflow-hidden border border-border">
                 <img src={receiptPreview} alt="Receipt" className="w-full max-h-48 object-contain bg-muted" />
-                <button onClick={handleRemoveReceipt} className="absolute top-2 right-2 rounded-full bg-background/80 p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors">
+                <button onClick={() => { setReceiptUrl(''); setReceiptPreview(''); }} className="absolute top-2 right-2 rounded-full bg-background/80 p-1 hover:bg-destructive hover:text-destructive-foreground transition-colors">
                   <X className="h-4 w-4" />
                 </button>
               </div>
