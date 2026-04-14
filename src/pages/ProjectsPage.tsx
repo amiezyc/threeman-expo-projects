@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useLanguage } from '@/context/LanguageContext';
 import ExpenseBreakdown from '@/components/ExpenseBreakdown';
@@ -6,7 +6,7 @@ import AddExpenseDialog from '@/components/AddExpenseDialog';
 import ProfitSharing from '@/components/ProfitSharing';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatCard from '@/components/StatCard';
-import { DollarSign, TrendingDown, PieChart, Plus, Trash2, Pencil, Check, X, ChevronDown } from 'lucide-react';
+import { DollarSign, TrendingDown, PieChart, Plus, Trash2, Pencil, Check, X, ChevronDown, GripVertical } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Project, Booth, PartnerShare } from '@/types';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const ProjectsPage = () => {
   const { projects, addProject, updateProject, deleteProject, addBooth, updateBooth, deleteBooth, updatePartners } = useApp();
@@ -35,6 +36,52 @@ const ProjectsPage = () => {
 
   const [editPartnersProjectId, setEditPartnersProjectId] = useState<string | null>(null);
   const [editPartners, setEditPartners] = useState<PartnerShare[]>([]);
+
+  // Drag and drop
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [orderedIds, setOrderedIds] = useState<string[]>([]);
+
+  // Maintain display order
+  const displayProjects = orderedIds.length === projects.length
+    ? orderedIds.map(id => projects.find(p => p.id === id)).filter(Boolean) as Project[]
+    : projects;
+
+  // Sync orderedIds when projects change
+  if (orderedIds.length !== projects.length) {
+    const ids = projects.map(p => p.id);
+    if (JSON.stringify(ids) !== JSON.stringify(orderedIds)) {
+      // Will be set on first render
+    }
+  }
+
+  const initOrder = () => {
+    if (orderedIds.length !== projects.length) {
+      setOrderedIds(projects.map(p => p.id));
+    }
+  };
+
+  const handleDragStart = (idx: number) => {
+    initOrder();
+    setDragIdx(idx);
+  };
+
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (dragIdx === null || dragIdx === idx) return;
+    const ids = orderedIds.length === projects.length ? [...orderedIds] : projects.map(p => p.id);
+    const [moved] = ids.splice(dragIdx, 1);
+    ids.splice(idx, 0, moved);
+    setOrderedIds(ids);
+    setDragIdx(idx);
+  };
+
+  const handleDragEnd = async () => {
+    setDragIdx(null);
+    // Persist order to DB
+    for (let i = 0; i < orderedIds.length; i++) {
+      await supabase.from('projects').update({ sort_order: i } as any).eq('id', orderedIds[i]);
+    }
+  };
 
   const handleAddProject = () => {
     if (!newProjectName.trim()) return;
@@ -100,7 +147,7 @@ const ProjectsPage = () => {
         </Button>
       </div>
 
-      {projects.map(project => {
+      {displayProjects.map((project, idx) => {
         const totalContract = project.booths.reduce((s, b) => s + b.totalContract, 0);
         const totalExpenses = project.expenses.filter(e => !e.isClientCost).reduce((s, e) => s + e.amount, 0);
         const profit = totalContract - totalExpenses;
@@ -110,12 +157,23 @@ const ProjectsPage = () => {
 
         const isOpen = openProjects[project.id] ?? false;
         return (
-          <Collapsible key={project.id} open={isOpen} onOpenChange={() => toggleProject(project.id)} className="space-y-4">
+          <div
+            key={project.id}
+            draggable
+            onDragStart={() => handleDragStart(idx)}
+            onDragOver={(e) => handleDragOver(e, idx)}
+            onDragEnd={handleDragEnd}
+            className={cn("transition-opacity", dragIdx === idx && "opacity-50")}
+          >
+          <Collapsible open={isOpen} onOpenChange={() => toggleProject(project.id)} className="space-y-4">
             <div className="flex items-center justify-between">
-              <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:bg-muted/30 rounded px-2 py-1 transition-colors">
-                <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
-                <h3 className="text-lg font-semibold">{project.name}</h3>
-              </CollapsibleTrigger>
+              <div className="flex items-center gap-2">
+                <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+                <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:bg-muted/30 rounded px-2 py-1 transition-colors">
+                  <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
+                  <h3 className="text-lg font-semibold">{project.name}</h3>
+                </CollapsibleTrigger>
+              </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => openEditPartners(project)} className="gap-1">
                   <Pencil className="h-3 w-3" /> {t('partners.title')}
@@ -238,6 +296,7 @@ const ProjectsPage = () => {
             </Tabs>
             </CollapsibleContent>
           </Collapsible>
+          </div>
         );
       })}
 
