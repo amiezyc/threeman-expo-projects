@@ -4,7 +4,9 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, GripVertical, Pencil, Check, X } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Plus, Trash2, GripVertical, Pencil, Check, X, ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface Category {
@@ -22,6 +24,7 @@ const CategoriesPage = () => {
   const [newSubNames, setNewSubNames] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [openCats, setOpenCats] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('expense_categories').select('*').order('sort_order');
@@ -33,6 +36,8 @@ const CategoriesPage = () => {
 
   const mainCats = categories.filter(c => !c.parent_id).sort((a, b) => a.sort_order - b.sort_order);
   const getSubCats = (parentId: string) => categories.filter(c => c.parent_id === parentId).sort((a, b) => a.sort_order - b.sort_order);
+
+  const toggleCat = (id: string) => setOpenCats(prev => ({ ...prev, [id]: prev[id] === undefined ? false : !prev[id] }));
 
   const addMainCategory = async () => {
     if (!newMainName.trim()) return;
@@ -85,59 +90,75 @@ const CategoriesPage = () => {
       </div>
 
       <div className="grid gap-4">
-        {mainCats.map(main => (
-          <Card key={main.id}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                {editingId === main.id ? (
-                  <div className="flex items-center gap-2">
-                    <Input value={editName} onChange={e => setEditName(e.target.value)} className="h-8 w-48" onKeyDown={e => e.key === 'Enter' && saveEdit()} />
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveEdit}><Check className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
-                  </div>
-                ) : (
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <GripVertical className="h-4 w-4 text-muted-foreground" />
-                    {main.name}
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(main)}><Pencil className="h-3 w-3" /></Button>
-                  </CardTitle>
-                )}
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteCategory(main.id)}><Trash2 className="h-4 w-4" /></Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {getSubCats(main.id).map(sub => (
-                <div key={sub.id} className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2">
-                  {editingId === sub.id ? (
-                    <div className="flex items-center gap-2">
-                      <Input value={editName} onChange={e => setEditName(e.target.value)} className="h-7 w-40 text-sm" onKeyDown={e => e.key === 'Enter' && saveEdit()} />
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveEdit}><Check className="h-3 w-3" /></Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingId(null)}><X className="h-3 w-3" /></Button>
+        {mainCats.map(main => {
+          const isOpen = openCats[main.id] !== false;
+          const subCount = getSubCats(main.id).length;
+          return (
+            <Collapsible key={main.id} open={isOpen} onOpenChange={() => toggleCat(main.id)}>
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    {editingId === main.id ? (
+                      <div className="flex items-center gap-2">
+                        <Input value={editName} onChange={e => setEditName(e.target.value)} className="h-8 w-48" onKeyDown={e => e.key === 'Enter' && saveEdit()} />
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveEdit}><Check className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
+                      </div>
+                    ) : (
+                      <CollapsibleTrigger asChild>
+                        <button className="flex items-center gap-2 cursor-pointer hover:opacity-80">
+                          <GripVertical className="h-4 w-4 text-muted-foreground" />
+                          <CardTitle className="text-base">{main.name}</CardTitle>
+                          <span className="text-xs text-muted-foreground">({subCount})</span>
+                          <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
+                        </button>
+                      </CollapsibleTrigger>
+                    )}
+                    <div className="flex items-center gap-1">
+                      {editingId !== main.id && (
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(main)}><Pencil className="h-3 w-3" /></Button>
+                      )}
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteCategory(main.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
-                  ) : (
-                    <span className="text-sm flex items-center gap-2">
-                      {sub.name}
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => startEdit(sub)}><Pencil className="h-3 w-3" /></Button>
-                    </span>
-                  )}
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteCategory(sub.id)}><Trash2 className="h-3 w-3" /></Button>
-                </div>
-              ))}
-              <div className="flex gap-2">
-                <Input
-                  value={newSubNames[main.id] || ''}
-                  onChange={e => setNewSubNames(prev => ({ ...prev, [main.id]: e.target.value }))}
-                  placeholder={t('categories.addSub')}
-                  className="h-8 text-sm"
-                  onKeyDown={e => e.key === 'Enter' && addSubCategory(main.id)}
-                />
-                <Button size="sm" variant="outline" onClick={() => addSubCategory(main.id)} className="h-8 gap-1">
-                  <Plus className="h-3 w-3" /> {t('common.add')}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                  </div>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent className="space-y-2">
+                    {getSubCats(main.id).map(sub => (
+                      <div key={sub.id} className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2">
+                        {editingId === sub.id ? (
+                          <div className="flex items-center gap-2">
+                            <Input value={editName} onChange={e => setEditName(e.target.value)} className="h-7 w-40 text-sm" onKeyDown={e => e.key === 'Enter' && saveEdit()} />
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveEdit}><Check className="h-3 w-3" /></Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingId(null)}><X className="h-3 w-3" /></Button>
+                          </div>
+                        ) : (
+                          <span className="text-sm flex items-center gap-2">
+                            {sub.name}
+                            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => startEdit(sub)}><Pencil className="h-3 w-3" /></Button>
+                          </span>
+                        )}
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteCategory(sub.id)}><Trash2 className="h-3 w-3" /></Button>
+                      </div>
+                    ))}
+                    <div className="flex gap-2">
+                      <Input
+                        value={newSubNames[main.id] || ''}
+                        onChange={e => setNewSubNames(prev => ({ ...prev, [main.id]: e.target.value }))}
+                        placeholder={t('categories.addSub')}
+                        className="h-8 text-sm"
+                        onKeyDown={e => e.key === 'Enter' && addSubCategory(main.id)}
+                      />
+                      <Button size="sm" variant="outline" onClick={() => addSubCategory(main.id)} className="h-8 gap-1">
+                        <Plus className="h-3 w-3" /> {t('common.add')}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          );
+        })}
       </div>
 
       <div className="flex gap-2">

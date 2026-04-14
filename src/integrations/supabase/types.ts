@@ -320,6 +320,7 @@ export type Database = {
           end_date: string | null
           id: string
           name: string
+          sort_order: number
           start_date: string
         }
         Insert: {
@@ -328,6 +329,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           name: string
+          sort_order?: number
           start_date: string
         }
         Update: {
@@ -336,6 +338,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           name?: string
+          sort_order?: number
           start_date?: string
         }
         Relationships: []
