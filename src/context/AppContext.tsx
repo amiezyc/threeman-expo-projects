@@ -454,19 +454,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // === Payments ===
+  // Helper: derive status from received_amount + due_date
+  const deriveStatus = (p: Payment): PaymentStatus => {
+    const rec = p.receivedAmount ?? 0;
+    if (rec >= p.amount && p.amount > 0) return 'received';
+    if (rec > 0 && rec < p.amount) {
+      if (p.dueDate && new Date(p.dueDate) < new Date()) return 'overdue';
+      return 'partial';
+    }
+    if (p.dueDate && new Date(p.dueDate) < new Date() && (p.status === 'invoiced' || p.status === 'overdue')) return 'overdue';
+    return p.status;
+  };
+
   const addPayment = async (boothId: string, payment: Payment) => {
+    const finalPayment = { ...payment, status: deriveStatus(payment) };
     const { data, error } = await supabase.from('payments').insert({
       booth_id: boothId,
-      type: payment.type,
-      amount: payment.amount,
-      status: payment.status,
-      invoice_date: payment.invoiceDate || null,
-      received_date: payment.receivedDate || null,
-      notes: payment.notes || null,
-      document_url: payment.documentUrl || null,
-    }).select().single();
+      type: finalPayment.type,
+      amount: finalPayment.amount,
+      received_amount: finalPayment.receivedAmount ?? 0,
+      status: finalPayment.status,
+      invoice_date: finalPayment.invoiceDate || null,
+      received_date: finalPayment.receivedDate || null,
+      due_date: finalPayment.dueDate || null,
+      invoice_number: finalPayment.invoiceNumber || null,
+      follow_up_notes: finalPayment.followUpNotes || null,
+      notes: finalPayment.notes || null,
+      document_url: finalPayment.documentUrl || null,
+    } as any).select().single();
     if (error) { toast.error('保存失败'); return; }
-    const newPayment = { ...payment, id: data.id };
+    const newPayment = { ...finalPayment, id: data.id };
     setProjects(prev => prev.map(p => ({
       ...p,
       booths: p.booths.map(b =>
@@ -476,20 +493,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updatePayment = async (payment: Payment) => {
+    const finalPayment = { ...payment, status: deriveStatus(payment) };
     await supabase.from('payments').update({
-      type: payment.type,
-      amount: payment.amount,
-      status: payment.status,
-      invoice_date: payment.invoiceDate || null,
-      received_date: payment.receivedDate || null,
-      notes: payment.notes || null,
-      document_url: payment.documentUrl || null,
-    }).eq('id', payment.id);
+      type: finalPayment.type,
+      amount: finalPayment.amount,
+      received_amount: finalPayment.receivedAmount ?? 0,
+      status: finalPayment.status,
+      invoice_date: finalPayment.invoiceDate || null,
+      received_date: finalPayment.receivedDate || null,
+      due_date: finalPayment.dueDate || null,
+      invoice_number: finalPayment.invoiceNumber || null,
+      follow_up_notes: finalPayment.followUpNotes || null,
+      notes: finalPayment.notes || null,
+      document_url: finalPayment.documentUrl || null,
+    } as any).eq('id', finalPayment.id);
     setProjects(prev => prev.map(p => ({
       ...p,
       booths: p.booths.map(b =>
-        b.id === payment.boothId
-          ? { ...b, payments: b.payments.map(pay => pay.id === payment.id ? payment : pay) }
+        b.id === finalPayment.boothId
+          ? { ...b, payments: b.payments.map(pay => pay.id === finalPayment.id ? finalPayment : pay) }
           : b
       ),
     })));
