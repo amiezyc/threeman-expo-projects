@@ -29,10 +29,25 @@ const Dashboard = () => {
     const totalContract = project.booths.reduce((s, b) => s + b.totalContract, 0);
     const totalExpenses = project.expenses.filter(e => !e.isClientCost).reduce((s, e) => s + e.amount, 0);
     const allPayments = project.booths.flatMap(b => b.payments);
-    const received = allPayments.filter(p => p.status === 'received').reduce((s, p) => s + p.amount, 0);
-    const pending = allPayments.filter(p => p.status !== 'received').reduce((s, p) => s + p.amount, 0);
+    // received now uses received_amount when present
+    const received = allPayments.reduce((s, p) => s + (p.receivedAmount ?? (p.status === 'received' ? p.amount : 0)), 0);
+    const pending = allPayments.reduce((s, p) => s + Math.max(0, p.amount - (p.receivedAmount ?? (p.status === 'received' ? p.amount : 0))), 0);
+    // 应付工资 = unpaid portion of work logs
+    const laborPayable = project.workLogs.reduce((s, w) => {
+      const amt = w.rateType === 'hourly' ? w.dailyRate * (w.hours || 0) : w.dailyRate;
+      const paid = w.paidAmount ?? 0;
+      return s + Math.max(0, amt - paid);
+    }, 0);
     const laborExpenses = project.expenses.filter(e => e.mainCategory === '人工' && !e.isClientCost).reduce((s, e) => s + e.amount, 0);
-    const advancedExpenses = project.expenses.filter(e => !e.isClientCost && !e.reimbursed && e.paidBy !== 'System').reduce((s, e) => s + e.amount, 0);
+    // 未收回垫付 = expenses with reimburse status not recovered, count remaining
+    const advancedExpenses = project.expenses
+      .filter(e => !e.isClientCost && e.paidBy !== 'System')
+      .reduce((s, e) => {
+        const isReimbursable = e.reimburseStatus ? e.reimburseStatus !== 'recovered' : !e.reimbursed;
+        if (!isReimbursable) return s;
+        const recovered = e.recoveredAmount ?? 0;
+        return s + Math.max(0, e.amount - recovered);
+      }, 0);
     const profit = totalContract - totalExpenses;
     const profitRate = totalContract > 0 ? (profit / totalContract) * 100 : 0;
     const status = getProjectStatus(project);
@@ -42,7 +57,7 @@ const Dashboard = () => {
 
     return {
       project, totalContract, totalExpenses, received, pending,
-      laborExpenses, advancedExpenses, profit, profitRate, status,
+      laborExpenses, laborPayable, advancedExpenses, profit, profitRate, status,
       boothCount, clients, isHighRisk,
     };
   }), [projects]);
