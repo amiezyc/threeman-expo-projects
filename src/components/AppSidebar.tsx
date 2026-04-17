@@ -1,7 +1,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Receipt, Users, FolderOpen, UserPlus, LogOut, Globe, Settings, KeyRound } from 'lucide-react';
+import { LayoutDashboard, Receipt, Users, FolderOpen, UserPlus, LogOut, Globe, Settings, KeyRound, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import {
