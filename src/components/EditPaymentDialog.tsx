@@ -145,23 +145,47 @@ const EditPaymentDialog = ({ payment, open, onOpenChange, onSave }: EditPaymentD
             <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" />
           </div>
           <div className="space-y-2">
+            <Label>已收金额 ($)</Label>
+            <Input type="number" value={receivedAmount} onChange={e => setReceivedAmount(e.target.value)} placeholder="0" />
+            {Number(amount) > 0 && (
+              <p className="text-xs text-muted-foreground">剩余 ${Math.max(0, Number(amount) - Number(receivedAmount || 0)).toLocaleString()}</p>
+            )}
+          </div>
+          <div className="space-y-2">
             <Label>{t('payments.status')}</Label>
             <Select value={status} onValueChange={(v) => setStatus(v as PaymentStatus)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="pending">{t('payments.status.pending')}</SelectItem>
                 <SelectItem value="invoiced">{t('payments.status.invoiced')}</SelectItem>
+                <SelectItem value="partial">部分收款</SelectItem>
                 <SelectItem value="received">{t('payments.status.received')}</SelectItem>
+                <SelectItem value="overdue">已逾期</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">状态会根据已收金额与到期日自动计算</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
+              <Label>{t('payments.invoiceDate')}</Label>
+              <Input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>到期日</Label>
+              <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+            </div>
           </div>
           <div className="space-y-2">
-            <Label>{t('payments.invoiceDate')}</Label>
-            <Input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} />
+            <Label>发票号</Label>
+            <Input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} placeholder="INV-..." />
           </div>
           <div className="space-y-2">
             <Label>{t('payments.notes')}</Label>
             <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('payments.notesPlaceholder')} rows={2} />
+          </div>
+          <div className="space-y-2">
+            <Label>跟进备注</Label>
+            <Textarea value={followUpNotes} onChange={e => setFollowUpNotes(e.target.value)} placeholder="催款记录、对接人..." rows={2} />
           </div>
           <Button className="w-full" onClick={handleSave}>{t('common.save')}</Button>
         </div>
