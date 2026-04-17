@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, Loader2, FileText, Sparkles } from 'lucide-react';
-import { Payment, PaymentStatus } from '@/types';
+import { Payment, PaymentStatus, PaymentType } from '@/types';
 import { uploadFile } from '@/lib/uploadFile';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -119,11 +119,13 @@ const EditPaymentDialog = ({ payment, open, onOpenChange, onSave }: EditPaymentD
           </div>
           <div className="space-y-2">
             <Label>{t('payments.type')}</Label>
-            <Select value={paymentType} onValueChange={(v) => setPaymentType(v as 'deposit' | 'balance')}>
+            <Select value={paymentType} onValueChange={(v) => setPaymentType(v as PaymentType)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="deposit">{t('payments.deposit')}</SelectItem>
                 <SelectItem value="balance">{t('payments.balance')}</SelectItem>
+                <SelectItem value="extra">加项</SelectItem>
+                <SelectItem value="reimburse_charge">垫付收费</SelectItem>
               </SelectContent>
             </Select>
           </div>

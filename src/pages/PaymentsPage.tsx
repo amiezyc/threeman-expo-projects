@@ -14,7 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { supabase } from '@/integrations/supabase/client';
 import { uploadFile } from '@/lib/uploadFile';
 import { toast } from 'sonner';
-import { Payment, PaymentStatus } from '@/types';
+import { Payment, PaymentStatus, PaymentType } from '@/types';
 import { cn } from '@/lib/utils';
 
 const PaymentsPage = () => {
@@ -37,7 +37,7 @@ const PaymentsPage = () => {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedBoothId, setSelectedBoothId] = useState('');
-  const [paymentType, setPaymentType] = useState<'deposit' | 'balance'>('deposit');
+  const [paymentType, setPaymentType] = useState<PaymentType>('deposit');
   const [amount, setAmount] = useState('');
   const [status, setStatus] = useState<PaymentStatus>('pending');
   const [invoiceDate, setInvoiceDate] = useState('');
@@ -172,11 +172,13 @@ const PaymentsPage = () => {
               </div>
               <div className="space-y-2">
                 <Label>{t('payments.type')}</Label>
-                <Select value={paymentType} onValueChange={(v) => setPaymentType(v as 'deposit' | 'balance')}>
+                <Select value={paymentType} onValueChange={(v) => setPaymentType(v as PaymentType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="deposit">{t('payments.deposit')}</SelectItem>
                     <SelectItem value="balance">{t('payments.balance')}</SelectItem>
+                    <SelectItem value="extra">加项</SelectItem>
+                    <SelectItem value="reimburse_charge">垫付收费</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
