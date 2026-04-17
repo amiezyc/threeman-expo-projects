@@ -107,23 +107,37 @@ const WorkLogPage = () => {
           {myLogs.length === 0 ? (
             <p className="text-center text-muted-foreground py-4 text-sm">{t('worklog.noLogs')}</p>
           ) : (
-            myLogs.map(log => (
-              <div key={log.id} className="flex items-center justify-between rounded-md border border-border/50 bg-muted/30 px-4 py-3 group">
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{log.date}</span>
+            myLogs.map(log => {
+              const amount = log.rateType === 'hourly' ? log.dailyRate * (log.hours || 0) : log.dailyRate;
+              const paid = log.paidAmount ?? 0;
+              const ps = paid >= amount && amount > 0 ? 'paid' : paid > 0 ? 'partial_paid' : 'unpaid';
+              const psCfg: Record<string, { label: string; className: string }> = {
+                unpaid: { label: '未支付', className: 'bg-muted text-muted-foreground' },
+                partial_paid: { label: '部分支付', className: 'bg-orange-500/10 text-orange-600' },
+                paid: { label: '已支付', className: 'bg-success/10 text-success' },
+              };
+              return (
+                <div key={log.id} className="flex items-center justify-between rounded-md border border-border/50 bg-muted/30 px-4 py-3 group">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{log.date}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${psCfg[ps].className}`}>{psCfg[ps].label}</span>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="text-muted-foreground">{projects.find(p => p.id === log.projectId)?.name}</span>
+                    <span className="font-bold">
+                      {log.rateType === 'hourly' ? `$${log.dailyRate}${t('employees.perHour')} × ${log.hours || 0}h` : `$${log.dailyRate}${t('employees.perDay')}`}
+                    </span>
+                    {paid > 0 && paid < amount && (
+                      <span className="text-xs text-orange-600">已付 ${paid} / 剩 ${amount - paid}</span>
+                    )}
+                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => openEdit(log)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="text-muted-foreground">{projects.find(p => p.id === log.projectId)?.name}</span>
-                  <span className="font-bold">
-                    {log.rateType === 'hourly' ? `$${log.dailyRate}${t('employees.perHour')} × ${log.hours || 0}h` : `$${log.dailyRate}${t('employees.perDay')}`}
-                  </span>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => openEdit(log)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

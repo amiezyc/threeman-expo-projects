@@ -105,11 +105,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               .map((pay: any) => ({
                 id: pay.id,
                 boothId: pay.booth_id,
-                type: pay.type as 'deposit' | 'balance',
+                type: pay.type as any,
                 amount: Number(pay.amount),
+                receivedAmount: pay.received_amount != null ? Number(pay.received_amount) : 0,
                 status: pay.status as any,
                 invoiceDate: pay.invoice_date || undefined,
                 receivedDate: pay.received_date || undefined,
+                dueDate: pay.due_date || undefined,
+                invoiceNumber: pay.invoice_number || undefined,
+                followUpNotes: pay.follow_up_notes || undefined,
                 notes: pay.notes || undefined,
                 documentUrl: pay.document_url || undefined,
               })),
@@ -129,6 +133,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             date: e.date,
             receiptUrl: e.receipt_url || undefined,
             reimbursed: !!e.reimbursed,
+            reimburseStatus: e.reimburse_status || undefined,
+            recoveredAmount: e.recovered_amount != null ? Number(e.recovered_amount) : 0,
+            vendorName: e.vendor_name || undefined,
+            clientId: e.client_id || undefined,
+            dueDate: e.due_date || undefined,
+            paidDate: e.paid_date || undefined,
             isClientCost: !!e.is_client_cost,
             unitPrice: e.unit_price != null ? Number(e.unit_price) : undefined,
             weight: e.weight != null ? Number(e.weight) : undefined,
@@ -146,6 +156,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             dailyRate: Number(w.daily_rate),
             rateType: (w.rate_type || 'daily') as 'daily' | 'hourly',
             hours: w.hours ? Number(w.hours) : undefined,
+            paymentStatus: (w.payment_status || 'unpaid') as any,
+            paidAmount: w.paid_amount != null ? Number(w.paid_amount) : 0,
+            paidDate: w.paid_date || undefined,
+            paidByUserId: w.paid_by_user_id || undefined,
           }));
 
         const partners: PartnerShare[] = partnerRows
@@ -278,11 +292,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description: expense.description,
       date: expense.date,
       receipt_url: expense.receiptUrl || null,
-      reimbursed: expense.reimbursed ?? false,
+      reimbursed: expense.reimburseStatus === 'recovered' ? true : (expense.reimbursed ?? false),
+      reimburse_status: expense.reimburseStatus || null,
+      recovered_amount: expense.recoveredAmount ?? 0,
+      vendor_name: expense.vendorName || null,
+      client_id: expense.clientId || null,
+      due_date: expense.dueDate || null,
+      paid_date: expense.paidDate || null,
       is_client_cost: expense.isClientCost ?? false,
       unit_price: expense.unitPrice ?? null,
       weight: expense.weight ?? null,
-    }).eq('id', expense.id);
+    } as any).eq('id', expense.id);
+    setProjects(prev => prev.map(p =>
+      p.id === expense.projectId ? { ...p, expenses: p.expenses.map(e => e.id === expense.id ? expense : e) } : p
+    ));
+  };
     setProjects(prev => prev.map(p =>
       p.id === expense.projectId ? { ...p, expenses: p.expenses.map(e => e.id === expense.id ? expense : e) } : p
     ));
@@ -386,7 +410,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       daily_rate: workLog.dailyRate,
       rate_type: workLog.rateType || 'daily',
       hours: workLog.hours || null,
-    }).select().single();
+      payment_status: workLog.paymentStatus || 'unpaid',
+      paid_amount: workLog.paidAmount ?? 0,
+      paid_date: workLog.paidDate || null,
+      paid_by_user_id: workLog.paidByUserId || null,
+    } as any).select().single();
     if (error) { toast.error('保存失败'); return; }
     const newLog = { ...workLog, id: data.id };
     let project = projects.find(p => p.id === workLog.projectId);
@@ -404,7 +432,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       daily_rate: workLog.dailyRate,
       rate_type: workLog.rateType || 'daily',
       hours: workLog.hours || null,
-    }).eq('id', workLog.id);
+      payment_status: workLog.paymentStatus || 'unpaid',
+      paid_amount: workLog.paidAmount ?? 0,
+      paid_date: workLog.paidDate || null,
+      paid_by_user_id: workLog.paidByUserId || null,
+    } as any).eq('id', workLog.id);
     let project = projects.find(p => p.id === workLog.projectId);
     if (!project) return;
     project = { ...project, workLogs: project.workLogs.map(w => w.id === workLog.id ? workLog : w) };
@@ -422,19 +454,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // === Payments ===
+  // Helper: derive status from received_amount + due_date
+  const deriveStatus = (p: Payment): PaymentStatus => {
+    const rec = p.receivedAmount ?? 0;
+    if (rec >= p.amount && p.amount > 0) return 'received';
+    if (rec > 0 && rec < p.amount) {
+      if (p.dueDate && new Date(p.dueDate) < new Date()) return 'overdue';
+      return 'partial';
+    }
+    if (p.dueDate && new Date(p.dueDate) < new Date() && (p.status === 'invoiced' || p.status === 'overdue')) return 'overdue';
+    return p.status;
+  };
+
   const addPayment = async (boothId: string, payment: Payment) => {
+    const finalPayment = { ...payment, status: deriveStatus(payment) };
     const { data, error } = await supabase.from('payments').insert({
       booth_id: boothId,
-      type: payment.type,
-      amount: payment.amount,
-      status: payment.status,
-      invoice_date: payment.invoiceDate || null,
-      received_date: payment.receivedDate || null,
-      notes: payment.notes || null,
-      document_url: payment.documentUrl || null,
-    }).select().single();
+      type: finalPayment.type,
+      amount: finalPayment.amount,
+      received_amount: finalPayment.receivedAmount ?? 0,
+      status: finalPayment.status,
+      invoice_date: finalPayment.invoiceDate || null,
+      received_date: finalPayment.receivedDate || null,
+      due_date: finalPayment.dueDate || null,
+      invoice_number: finalPayment.invoiceNumber || null,
+      follow_up_notes: finalPayment.followUpNotes || null,
+      notes: finalPayment.notes || null,
+      document_url: finalPayment.documentUrl || null,
+    } as any).select().single();
     if (error) { toast.error('保存失败'); return; }
-    const newPayment = { ...payment, id: data.id };
+    const newPayment = { ...finalPayment, id: data.id };
     setProjects(prev => prev.map(p => ({
       ...p,
       booths: p.booths.map(b =>
@@ -444,20 +493,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updatePayment = async (payment: Payment) => {
+    const finalPayment = { ...payment, status: deriveStatus(payment) };
     await supabase.from('payments').update({
-      type: payment.type,
-      amount: payment.amount,
-      status: payment.status,
-      invoice_date: payment.invoiceDate || null,
-      received_date: payment.receivedDate || null,
-      notes: payment.notes || null,
-      document_url: payment.documentUrl || null,
-    }).eq('id', payment.id);
+      type: finalPayment.type,
+      amount: finalPayment.amount,
+      received_amount: finalPayment.receivedAmount ?? 0,
+      status: finalPayment.status,
+      invoice_date: finalPayment.invoiceDate || null,
+      received_date: finalPayment.receivedDate || null,
+      due_date: finalPayment.dueDate || null,
+      invoice_number: finalPayment.invoiceNumber || null,
+      follow_up_notes: finalPayment.followUpNotes || null,
+      notes: finalPayment.notes || null,
+      document_url: finalPayment.documentUrl || null,
+    } as any).eq('id', finalPayment.id);
     setProjects(prev => prev.map(p => ({
       ...p,
       booths: p.booths.map(b =>
-        b.id === payment.boothId
-          ? { ...b, payments: b.payments.map(pay => pay.id === payment.id ? payment : pay) }
+        b.id === finalPayment.boothId
+          ? { ...b, payments: b.payments.map(pay => pay.id === finalPayment.id ? finalPayment : pay) }
           : b
       ),
     })));

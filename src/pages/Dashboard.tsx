@@ -14,7 +14,10 @@ type FilterType = 'all' | 'active' | 'completed' | 'high_risk' | 'unreimbursed';
 
 const getProjectStatus = (project: Project): ProjectStatus => {
   const allPayments = project.booths.flatMap(b => b.payments);
-  const allReceived = allPayments.length > 0 && allPayments.every(p => p.status === 'received');
+  const allReceived = allPayments.length > 0 && allPayments.every(p => {
+    const rec = p.receivedAmount ?? (p.status === 'received' ? p.amount : 0);
+    return rec >= p.amount && p.amount > 0;
+  });
   if (allReceived && allPayments.length > 0) return 'settled';
   if (project.endDate && new Date(project.endDate) < new Date()) return 'completed';
   return 'active';
@@ -29,10 +32,25 @@ const Dashboard = () => {
     const totalContract = project.booths.reduce((s, b) => s + b.totalContract, 0);
     const totalExpenses = project.expenses.filter(e => !e.isClientCost).reduce((s, e) => s + e.amount, 0);
     const allPayments = project.booths.flatMap(b => b.payments);
-    const received = allPayments.filter(p => p.status === 'received').reduce((s, p) => s + p.amount, 0);
-    const pending = allPayments.filter(p => p.status !== 'received').reduce((s, p) => s + p.amount, 0);
+    // received now uses received_amount when present
+    const received = allPayments.reduce((s, p) => s + (p.receivedAmount ?? (p.status === 'received' ? p.amount : 0)), 0);
+    const pending = allPayments.reduce((s, p) => s + Math.max(0, p.amount - (p.receivedAmount ?? (p.status === 'received' ? p.amount : 0))), 0);
+    // 应付工资 = unpaid portion of work logs
+    const laborPayable = project.workLogs.reduce((s, w) => {
+      const amt = w.rateType === 'hourly' ? w.dailyRate * (w.hours || 0) : w.dailyRate;
+      const paid = w.paidAmount ?? 0;
+      return s + Math.max(0, amt - paid);
+    }, 0);
     const laborExpenses = project.expenses.filter(e => e.mainCategory === '人工' && !e.isClientCost).reduce((s, e) => s + e.amount, 0);
-    const advancedExpenses = project.expenses.filter(e => !e.isClientCost && !e.reimbursed && e.paidBy !== 'System').reduce((s, e) => s + e.amount, 0);
+    // 未收回垫付 = expenses with reimburse status not recovered, count remaining
+    const advancedExpenses = project.expenses
+      .filter(e => !e.isClientCost && e.paidBy !== 'System')
+      .reduce((s, e) => {
+        const isReimbursable = e.reimburseStatus ? e.reimburseStatus !== 'recovered' : !e.reimbursed;
+        if (!isReimbursable) return s;
+        const recovered = e.recoveredAmount ?? 0;
+        return s + Math.max(0, e.amount - recovered);
+      }, 0);
     const profit = totalContract - totalExpenses;
     const profitRate = totalContract > 0 ? (profit / totalContract) * 100 : 0;
     const status = getProjectStatus(project);
@@ -42,7 +60,7 @@ const Dashboard = () => {
 
     return {
       project, totalContract, totalExpenses, received, pending,
-      laborExpenses, advancedExpenses, profit, profitRate, status,
+      laborExpenses, laborPayable, advancedExpenses, profit, profitRate, status,
       boothCount, clients, isHighRisk,
     };
   }), [projects]);
@@ -54,7 +72,7 @@ const Dashboard = () => {
   const monthlyExpenses = projectStats.reduce((s, p) => s + p.totalExpenses, 0);
   const totalUnreimbursed = projectStats.reduce((s, p) => s + p.advancedExpenses, 0);
   const totalPending = projectStats.reduce((s, p) => s + p.pending, 0);
-  const totalLabor = projectStats.reduce((s, p) => s + p.laborExpenses, 0);
+  const totalLaborPayable = projectStats.reduce((s, p) => s + p.laborPayable, 0);
   const totalProfit = projectStats.reduce((s, p) => s + p.profit, 0);
 
   const filtered = projectStats.filter(p => {
@@ -95,7 +113,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard title={lang === 'zh' ? '未收回垫付' : 'Unreimbursed'} value={fmt2(totalUnreimbursed)} icon={AlertTriangle} variant={totalUnreimbursed > 0 ? 'destructive' : 'default'} />
         <StatCard title={lang === 'zh' ? '待收款' : 'Pending Payments'} value={fmt(totalPending)} icon={Clock} variant="warning" />
-        <StatCard title={lang === 'zh' ? '应付工资' : 'Labor Payable'} value={fmt2(totalLabor)} icon={Users} />
+        <StatCard title={lang === 'zh' ? '应付工资' : 'Labor Payable'} value={fmt2(totalLaborPayable)} icon={Users} variant={totalLaborPayable > 0 ? 'warning' : 'default'} />
         <StatCard title={lang === 'zh' ? '预计总利润' : 'Est. Total Profit'} value={fmt2(totalProfit)} icon={TrendingUp} variant={totalProfit > 0 ? 'success' : 'destructive'} />
       </div>
 
@@ -146,7 +164,7 @@ const Dashboard = () => {
                 <TableCell className="text-right">{fmt(row.pending)}</TableCell>
                 <TableCell className="text-right">{fmt2(row.totalExpenses)}</TableCell>
                 <TableCell className="text-right">{row.advancedExpenses > 0 ? fmt2(row.advancedExpenses) : '-'}</TableCell>
-                <TableCell className="text-right">{fmt2(row.laborExpenses)}</TableCell>
+                <TableCell className="text-right">{fmt2(row.laborPayable)}</TableCell>
                 <TableCell className={`text-right font-semibold ${row.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmt2(row.profit)}</TableCell>
                 <TableCell className="text-right">{row.profitRate.toFixed(1)}%</TableCell>
                 <TableCell className="text-center">

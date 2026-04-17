@@ -14,7 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { supabase } from '@/integrations/supabase/client';
 import { uploadFile } from '@/lib/uploadFile';
 import { toast } from 'sonner';
-import { Payment, PaymentStatus } from '@/types';
+import { Payment, PaymentStatus, PaymentType } from '@/types';
 import { cn } from '@/lib/utils';
 
 const PaymentsPage = () => {
@@ -24,8 +24,8 @@ const PaymentsPage = () => {
   const allPayments = allBooths.flatMap(b => b.payments);
 
   const totalAmount = allPayments.reduce((s, p) => s + p.amount, 0);
-  const received = allPayments.filter(p => p.status === 'received').reduce((s, p) => s + p.amount, 0);
-  const pending = allPayments.filter(p => p.status !== 'received').reduce((s, p) => s + p.amount, 0);
+  const received = allPayments.reduce((s, p) => s + (p.receivedAmount ?? (p.status === 'received' ? p.amount : 0)), 0);
+  const pending = allPayments.reduce((s, p) => s + Math.max(0, p.amount - (p.receivedAmount ?? (p.status === 'received' ? p.amount : 0))), 0);
 
   const [openProjects, setOpenProjects] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
@@ -37,7 +37,7 @@ const PaymentsPage = () => {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedBoothId, setSelectedBoothId] = useState('');
-  const [paymentType, setPaymentType] = useState<'deposit' | 'balance'>('deposit');
+  const [paymentType, setPaymentType] = useState<PaymentType>('deposit');
   const [amount, setAmount] = useState('');
   const [status, setStatus] = useState<PaymentStatus>('pending');
   const [invoiceDate, setInvoiceDate] = useState('');
@@ -172,11 +172,13 @@ const PaymentsPage = () => {
               </div>
               <div className="space-y-2">
                 <Label>{t('payments.type')}</Label>
-                <Select value={paymentType} onValueChange={(v) => setPaymentType(v as 'deposit' | 'balance')}>
+                <Select value={paymentType} onValueChange={(v) => setPaymentType(v as PaymentType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="deposit">{t('payments.deposit')}</SelectItem>
                     <SelectItem value="balance">{t('payments.balance')}</SelectItem>
+                    <SelectItem value="extra">加项</SelectItem>
+                    <SelectItem value="reimburse_charge">垫付收费</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -218,9 +220,11 @@ const PaymentsPage = () => {
       {projects.map(project => {
         const isOpen = openProjects[project.id] ?? false;
         const allPaid = project.booths.length > 0 && project.booths.every(b => {
-          const hasDeposit = b.payments.some(pay => pay.type === 'deposit' && pay.status === 'received');
-          const hasBalance = b.payments.some(pay => pay.type === 'balance' && pay.status === 'received');
-          return b.payments.length > 0 && hasDeposit && hasBalance;
+          if (b.payments.length === 0) return false;
+          return b.payments.every(p => {
+            const rec = p.receivedAmount ?? (p.status === 'received' ? p.amount : 0);
+            return rec >= p.amount && p.amount > 0;
+          });
         });
 
         return (

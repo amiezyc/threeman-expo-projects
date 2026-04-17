@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, Loader2, FileText, Sparkles } from 'lucide-react';
-import { Payment, PaymentStatus } from '@/types';
+import { Payment, PaymentStatus, PaymentType } from '@/types';
 import { uploadFile } from '@/lib/uploadFile';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -21,10 +21,14 @@ interface EditPaymentDialogProps {
 
 const EditPaymentDialog = ({ payment, open, onOpenChange, onSave }: EditPaymentDialogProps) => {
   const { t } = useLanguage();
-  const [paymentType, setPaymentType] = useState(payment.type);
+  const [paymentType, setPaymentType] = useState<PaymentType>(payment.type);
   const [amount, setAmount] = useState(String(payment.amount));
+  const [receivedAmount, setReceivedAmount] = useState(String(payment.receivedAmount ?? 0));
   const [status, setStatus] = useState<PaymentStatus>(payment.status);
   const [invoiceDate, setInvoiceDate] = useState(payment.invoiceDate || '');
+  const [dueDate, setDueDate] = useState(payment.dueDate || '');
+  const [invoiceNumber, setInvoiceNumber] = useState(payment.invoiceNumber || '');
+  const [followUpNotes, setFollowUpNotes] = useState(payment.followUpNotes || '');
   const [notes, setNotes] = useState(payment.notes || '');
   const [documentUrl, setDocumentUrl] = useState(payment.documentUrl || '');
   const [uploading, setUploading] = useState(false);
@@ -84,8 +88,15 @@ const EditPaymentDialog = ({ payment, open, onOpenChange, onSave }: EditPaymentD
   const handleSave = () => {
     if (!amount) { toast.error(t('payments.fillAmount')); return; }
     onSave({
-      ...payment, type: paymentType, amount: Number(amount), status,
-      invoiceDate: invoiceDate || undefined, notes: notes || undefined, documentUrl: documentUrl || undefined,
+      ...payment, type: paymentType, amount: Number(amount),
+      receivedAmount: receivedAmount ? Number(receivedAmount) : 0,
+      status,
+      invoiceDate: invoiceDate || undefined,
+      dueDate: dueDate || undefined,
+      invoiceNumber: invoiceNumber || undefined,
+      followUpNotes: followUpNotes || undefined,
+      notes: notes || undefined,
+      documentUrl: documentUrl || undefined,
     });
     onOpenChange(false);
   };
@@ -119,11 +130,13 @@ const EditPaymentDialog = ({ payment, open, onOpenChange, onSave }: EditPaymentD
           </div>
           <div className="space-y-2">
             <Label>{t('payments.type')}</Label>
-            <Select value={paymentType} onValueChange={(v) => setPaymentType(v as 'deposit' | 'balance')}>
+            <Select value={paymentType} onValueChange={(v) => setPaymentType(v as PaymentType)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="deposit">{t('payments.deposit')}</SelectItem>
                 <SelectItem value="balance">{t('payments.balance')}</SelectItem>
+                <SelectItem value="extra">加项</SelectItem>
+                <SelectItem value="reimburse_charge">垫付收费</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -132,23 +145,47 @@ const EditPaymentDialog = ({ payment, open, onOpenChange, onSave }: EditPaymentD
             <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" />
           </div>
           <div className="space-y-2">
+            <Label>已收金额 ($)</Label>
+            <Input type="number" value={receivedAmount} onChange={e => setReceivedAmount(e.target.value)} placeholder="0" />
+            {Number(amount) > 0 && (
+              <p className="text-xs text-muted-foreground">剩余 ${Math.max(0, Number(amount) - Number(receivedAmount || 0)).toLocaleString()}</p>
+            )}
+          </div>
+          <div className="space-y-2">
             <Label>{t('payments.status')}</Label>
             <Select value={status} onValueChange={(v) => setStatus(v as PaymentStatus)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="pending">{t('payments.status.pending')}</SelectItem>
                 <SelectItem value="invoiced">{t('payments.status.invoiced')}</SelectItem>
+                <SelectItem value="partial">部分收款</SelectItem>
                 <SelectItem value="received">{t('payments.status.received')}</SelectItem>
+                <SelectItem value="overdue">已逾期</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">状态会根据已收金额与到期日自动计算</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
+              <Label>{t('payments.invoiceDate')}</Label>
+              <Input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>到期日</Label>
+              <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+            </div>
           </div>
           <div className="space-y-2">
-            <Label>{t('payments.invoiceDate')}</Label>
-            <Input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} />
+            <Label>发票号</Label>
+            <Input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} placeholder="INV-..." />
           </div>
           <div className="space-y-2">
             <Label>{t('payments.notes')}</Label>
             <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('payments.notesPlaceholder')} rows={2} />
+          </div>
+          <div className="space-y-2">
+            <Label>跟进备注</Label>
+            <Textarea value={followUpNotes} onChange={e => setFollowUpNotes(e.target.value)} placeholder="催款记录、对接人..." rows={2} />
           </div>
           <Button className="w-full" onClick={handleSave}>{t('common.save')}</Button>
         </div>
