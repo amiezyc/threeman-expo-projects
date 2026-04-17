@@ -292,11 +292,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description: expense.description,
       date: expense.date,
       receipt_url: expense.receiptUrl || null,
-      reimbursed: expense.reimbursed ?? false,
+      reimbursed: expense.reimburseStatus === 'recovered' ? true : (expense.reimbursed ?? false),
+      reimburse_status: expense.reimburseStatus || null,
+      recovered_amount: expense.recoveredAmount ?? 0,
+      vendor_name: expense.vendorName || null,
+      client_id: expense.clientId || null,
+      due_date: expense.dueDate || null,
+      paid_date: expense.paidDate || null,
       is_client_cost: expense.isClientCost ?? false,
       unit_price: expense.unitPrice ?? null,
       weight: expense.weight ?? null,
-    }).eq('id', expense.id);
+    } as any).eq('id', expense.id);
+    setProjects(prev => prev.map(p =>
+      p.id === expense.projectId ? { ...p, expenses: p.expenses.map(e => e.id === expense.id ? expense : e) } : p
+    ));
+  };
     setProjects(prev => prev.map(p =>
       p.id === expense.projectId ? { ...p, expenses: p.expenses.map(e => e.id === expense.id ? expense : e) } : p
     ));
