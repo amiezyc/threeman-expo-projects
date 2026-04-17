@@ -343,6 +343,87 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          amount: number
+          booth_id: string | null
+          category: string | null
+          client_id: string | null
+          created_at: string
+          date: string
+          due_date: string | null
+          employee_id: string | null
+          id: string
+          invoice_number: string | null
+          nature: string
+          notes: string | null
+          owed_to_user_id: string | null
+          paid_by_user_id: string | null
+          paid_date: string | null
+          project_id: string | null
+          receipt_url: string | null
+          source_id: string | null
+          source_table: string | null
+          status: string
+          subcategory: string | null
+          type: string
+          updated_at: string
+          vendor_name: string | null
+        }
+        Insert: {
+          amount?: number
+          booth_id?: string | null
+          category?: string | null
+          client_id?: string | null
+          created_at?: string
+          date: string
+          due_date?: string | null
+          employee_id?: string | null
+          id?: string
+          invoice_number?: string | null
+          nature: string
+          notes?: string | null
+          owed_to_user_id?: string | null
+          paid_by_user_id?: string | null
+          paid_date?: string | null
+          project_id?: string | null
+          receipt_url?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          status: string
+          subcategory?: string | null
+          type: string
+          updated_at?: string
+          vendor_name?: string | null
+        }
+        Update: {
+          amount?: number
+          booth_id?: string | null
+          category?: string | null
+          client_id?: string | null
+          created_at?: string
+          date?: string
+          due_date?: string | null
+          employee_id?: string | null
+          id?: string
+          invoice_number?: string | null
+          nature?: string
+          notes?: string | null
+          owed_to_user_id?: string | null
+          paid_by_user_id?: string | null
+          paid_date?: string | null
+          project_id?: string | null
+          receipt_url?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          status?: string
+          subcategory?: string | null
+          type?: string
+          updated_at?: string
+          vendor_name?: string | null
+        }
+        Relationships: []
+      }
       work_logs: {
         Row: {
           auth_user_id: string | null
