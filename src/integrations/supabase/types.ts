@@ -136,55 +136,73 @@ export type Database = {
         Row: {
           amount: number
           booth_id: string | null
+          client_id: string | null
           date: string
           description: string
+          due_date: string | null
           id: string
           is_client_cost: boolean
           main_category: string
           paid_by: string
+          paid_date: string | null
           project_id: string
           receipt_url: string | null
+          recovered_amount: number
+          reimburse_status: string | null
           reimbursed: boolean
           source_id: string | null
           sub_category: string
           unit_price: number | null
           user_id: string | null
+          vendor_name: string | null
           weight: number | null
         }
         Insert: {
           amount?: number
           booth_id?: string | null
+          client_id?: string | null
           date: string
           description?: string
+          due_date?: string | null
           id?: string
           is_client_cost?: boolean
           main_category: string
           paid_by: string
+          paid_date?: string | null
           project_id: string
           receipt_url?: string | null
+          recovered_amount?: number
+          reimburse_status?: string | null
           reimbursed?: boolean
           source_id?: string | null
           sub_category: string
           unit_price?: number | null
           user_id?: string | null
+          vendor_name?: string | null
           weight?: number | null
         }
         Update: {
           amount?: number
           booth_id?: string | null
+          client_id?: string | null
           date?: string
           description?: string
+          due_date?: string | null
           id?: string
           is_client_cost?: boolean
           main_category?: string
           paid_by?: string
+          paid_date?: string | null
           project_id?: string
           receipt_url?: string | null
+          recovered_amount?: number
+          reimburse_status?: string | null
           reimbursed?: boolean
           source_id?: string | null
           sub_category?: string
           unit_price?: number | null
           user_id?: string | null
+          vendor_name?: string | null
           weight?: number | null
         }
         Relationships: [
@@ -238,9 +256,13 @@ export type Database = {
           amount: number
           booth_id: string
           document_url: string | null
+          due_date: string | null
+          follow_up_notes: string | null
           id: string
           invoice_date: string | null
+          invoice_number: string | null
           notes: string | null
+          received_amount: number
           received_date: string | null
           status: string
           type: string
@@ -249,9 +271,13 @@ export type Database = {
           amount?: number
           booth_id: string
           document_url?: string | null
+          due_date?: string | null
+          follow_up_notes?: string | null
           id?: string
           invoice_date?: string | null
+          invoice_number?: string | null
           notes?: string | null
+          received_amount?: number
           received_date?: string | null
           status?: string
           type?: string
@@ -260,9 +286,13 @@ export type Database = {
           amount?: number
           booth_id?: string
           document_url?: string | null
+          due_date?: string | null
+          follow_up_notes?: string | null
           id?: string
           invoice_date?: string | null
+          invoice_number?: string | null
           notes?: string | null
+          received_amount?: number
           received_date?: string | null
           status?: string
           type?: string
@@ -432,6 +462,10 @@ export type Database = {
           date: string
           hours: number | null
           id: string
+          paid_amount: number
+          paid_by_user_id: string | null
+          paid_date: string | null
+          payment_status: string
           project_id: string
           rate_type: string
           user_id: string
@@ -444,6 +478,10 @@ export type Database = {
           date: string
           hours?: number | null
           id?: string
+          paid_amount?: number
+          paid_by_user_id?: string | null
+          paid_date?: string | null
+          payment_status?: string
           project_id: string
           rate_type?: string
           user_id: string
@@ -456,6 +494,10 @@ export type Database = {
           date?: string
           hours?: number | null
           id?: string
+          paid_amount?: number
+          paid_by_user_id?: string | null
+          paid_date?: string | null
+          payment_status?: string
           project_id?: string
           rate_type?: string
           user_id?: string
@@ -483,6 +525,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      compute_payment_status: {
+        Args: {
+          _amount: number
+          _current_status: string
+          _due_date: string
+          _received: number
+        }
+        Returns: string
+      }
       get_user_role: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
