@@ -307,10 +307,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       p.id === expense.projectId ? { ...p, expenses: p.expenses.map(e => e.id === expense.id ? expense : e) } : p
     ));
   };
-    setProjects(prev => prev.map(p =>
-      p.id === expense.projectId ? { ...p, expenses: p.expenses.map(e => e.id === expense.id ? expense : e) } : p
-    ));
-  };
 
   const deleteExpense = async (projectId: string, expenseId: string) => {
     await supabase.from('expenses').delete().eq('id', expenseId);
