@@ -30,6 +30,8 @@ export const categoryStructure: Record<ExpenseMainCategory, ExpenseSubCategory[]
   '其他': ['其他'],
 };
 
+export type ReimburseStatus = 'not_billed' | 'billed' | 'partial_recovered' | 'recovered';
+
 export interface Expense {
   id: string;
   projectId: string;
@@ -42,10 +44,18 @@ export interface Expense {
   date: string;
   receiptUrl?: string;
   reimbursed?: boolean;
+  reimburseStatus?: ReimburseStatus;
+  recoveredAmount?: number;
+  vendorName?: string;
+  clientId?: string;
+  dueDate?: string;
+  paidDate?: string;
   isClientCost?: boolean;
   unitPrice?: number;
   weight?: number;
 }
+
+export type PayrollPaymentStatus = 'unpaid' | 'partial_paid' | 'paid';
 
 export interface WorkLog {
   id: string;
@@ -57,18 +67,27 @@ export interface WorkLog {
   dailyRate: number;
   rateType: RateType;
   hours?: number;
+  paymentStatus?: PayrollPaymentStatus;
+  paidAmount?: number;
+  paidDate?: string;
+  paidByUserId?: string;
 }
 
-export type PaymentStatus = 'pending' | 'invoiced' | 'received';
+export type PaymentStatus = 'pending' | 'invoiced' | 'partial' | 'received' | 'overdue';
+export type PaymentType = 'deposit' | 'balance' | 'extra' | 'reimburse_charge';
 
 export interface Payment {
   id: string;
   boothId: string;
-  type: 'deposit' | 'balance';
+  type: PaymentType;
   amount: number;
+  receivedAmount?: number;
   status: PaymentStatus;
   invoiceDate?: string;
   receivedDate?: string;
+  dueDate?: string;
+  invoiceNumber?: string;
+  followUpNotes?: string;
   notes?: string;
   documentUrl?: string;
 }
