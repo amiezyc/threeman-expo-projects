@@ -34,9 +34,25 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
     });
   };
 
-  const toggleReimbursed = (e: React.MouseEvent, item: Expense) => {
+  // 4-state cycle for reimbursable expenses (only when an item has user_id i.e. is a 垫付)
+  const reimburseCycle: ReimburseStatus[] = ['not_billed', 'billed', 'partial_recovered', 'recovered'];
+  const reimburseConfig: Record<ReimburseStatus, { label: string; className: string }> = {
+    not_billed: { label: '未开票', className: 'bg-muted text-muted-foreground hover:bg-muted/80' },
+    billed: { label: '已开票', className: 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20' },
+    partial_recovered: { label: '部分收回', className: 'bg-orange-500/10 text-orange-600 hover:bg-orange-500/20' },
+    recovered: { label: '已收回', className: 'bg-success/10 text-success hover:bg-success/20' },
+  };
+
+  const cycleReimburseStatus = (e: React.MouseEvent, item: Expense) => {
     e.stopPropagation();
-    updateExpense({ ...item, reimbursed: !item.reimbursed });
+    const current: ReimburseStatus = item.reimburseStatus
+      || (item.reimbursed ? 'recovered' : 'not_billed');
+    const idx = reimburseCycle.indexOf(current);
+    const next = reimburseCycle[(idx + 1) % reimburseCycle.length];
+    const updates: Partial<Expense> = { reimburseStatus: next, reimbursed: next === 'recovered' };
+    if (next === 'recovered') updates.recoveredAmount = item.amount;
+    else if (next === 'not_billed' || next === 'billed') updates.recoveredAmount = 0;
+    updateExpense({ ...item, ...updates });
   };
 
   const catDisplayName = (cat: ExpenseMainCategory) => {
@@ -51,10 +67,12 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
     return acc;
   }, {});
 
+  // Reimbursable summary by payer (only count items still owing)
   const byPayer = expenses.reduce<Record<string, { total: number; unreimbursed: number }>>((acc, e) => {
     if (!acc[e.paidBy]) acc[e.paidBy] = { total: 0, unreimbursed: 0 };
     acc[e.paidBy].total += e.amount;
-    if (!e.reimbursed) acc[e.paidBy].unreimbursed += e.amount;
+    const recovered = e.recoveredAmount ?? (e.reimbursed ? e.amount : 0);
+    acc[e.paidBy].unreimbursed += Math.max(0, e.amount - recovered);
     return acc;
   }, {});
 
