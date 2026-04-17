@@ -24,8 +24,8 @@ const PaymentsPage = () => {
   const allPayments = allBooths.flatMap(b => b.payments);
 
   const totalAmount = allPayments.reduce((s, p) => s + p.amount, 0);
-  const received = allPayments.filter(p => p.status === 'received').reduce((s, p) => s + p.amount, 0);
-  const pending = allPayments.filter(p => p.status !== 'received').reduce((s, p) => s + p.amount, 0);
+  const received = allPayments.reduce((s, p) => s + (p.receivedAmount ?? (p.status === 'received' ? p.amount : 0)), 0);
+  const pending = allPayments.reduce((s, p) => s + Math.max(0, p.amount - (p.receivedAmount ?? (p.status === 'received' ? p.amount : 0))), 0);
 
   const [openProjects, setOpenProjects] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
@@ -220,9 +220,11 @@ const PaymentsPage = () => {
       {projects.map(project => {
         const isOpen = openProjects[project.id] ?? false;
         const allPaid = project.booths.length > 0 && project.booths.every(b => {
-          const hasDeposit = b.payments.some(pay => pay.type === 'deposit' && pay.status === 'received');
-          const hasBalance = b.payments.some(pay => pay.type === 'balance' && pay.status === 'received');
-          return b.payments.length > 0 && hasDeposit && hasBalance;
+          if (b.payments.length === 0) return false;
+          return b.payments.every(p => {
+            const rec = p.receivedAmount ?? (p.status === 'received' ? p.amount : 0);
+            return rec >= p.amount && p.amount > 0;
+          });
         });
 
         return (
