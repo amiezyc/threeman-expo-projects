@@ -119,8 +119,7 @@ const ReimbursementsPage = () => {
 
   const handleDelete = async (r: Expense) => {
     if (!confirm('确认删除该垫付记录？')) return;
-    const { deleteExpense } = (await import('@/context/AppContext')) as any;
-    // use context method via re-render path
+    await deleteExpense(r.projectId, r.id);
   };
 
   return (
