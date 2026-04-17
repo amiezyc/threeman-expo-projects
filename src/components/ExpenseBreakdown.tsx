@@ -1,4 +1,4 @@
-import { Expense, ExpenseMainCategory } from '@/types';
+import { Expense, ExpenseMainCategory, ReimburseStatus } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronRight, Pencil, Image, CircleDollarSign } from 'lucide-react';
 import { useState } from 'react';
