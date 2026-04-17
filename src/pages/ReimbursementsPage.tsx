@@ -253,6 +253,15 @@ const ReimbursementsPage = () => {
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
                       </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        title="删除"
+                        onClick={() => handleDelete(r)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
