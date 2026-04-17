@@ -165,18 +165,20 @@ const ExpenseBreakdown = ({ expenses, title }: ExpenseBreakdownProps) => {
                                 {t('expenses.clientCost')}
                               </span>
                             )}
-                            <button
-                              onClick={(e) => toggleReimbursed(e, item)}
-                              className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${
-                                item.reimbursed
-                                  ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                                  : 'bg-destructive/10 text-destructive hover:bg-destructive/20'
-                              }`}
-                              title={item.reimbursed ? t('expenses.reimbursedTip') : t('expenses.unreimbursedTip')}
-                            >
-                              <CircleDollarSign className="h-3 w-3" />
-                              {item.reimbursed ? t('expenses.reimbursed') : t('expenses.unreimbursed')}
-                            </button>
+                            {(() => {
+                              const current: ReimburseStatus = item.reimburseStatus || (item.reimbursed ? 'recovered' : 'not_billed');
+                              const cfg = reimburseConfig[current];
+                              return (
+                                <button
+                                  onClick={(e) => cycleReimburseStatus(e, item)}
+                                  className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${cfg.className}`}
+                                  title="点击循环切换状态"
+                                >
+                                  <CircleDollarSign className="h-3 w-3" />
+                                  {cfg.label}
+                                </button>
+                              );
+                            })()}
                             <span className="font-medium">${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                             <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
