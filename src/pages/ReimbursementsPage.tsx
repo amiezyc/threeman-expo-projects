@@ -35,7 +35,7 @@ const statusBadgeClass = (s: ReimburseStatus) => {
 const fmt = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
 const ReimbursementsPage = () => {
-  const { projects, updateExpense } = useApp();
+  const { projects, updateExpense, deleteExpense } = useApp();
   const navigate = useNavigate();
 
   const [projectFilter, setProjectFilter] = useState<string>('all');
