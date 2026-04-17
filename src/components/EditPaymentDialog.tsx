@@ -88,8 +88,15 @@ const EditPaymentDialog = ({ payment, open, onOpenChange, onSave }: EditPaymentD
   const handleSave = () => {
     if (!amount) { toast.error(t('payments.fillAmount')); return; }
     onSave({
-      ...payment, type: paymentType, amount: Number(amount), status,
-      invoiceDate: invoiceDate || undefined, notes: notes || undefined, documentUrl: documentUrl || undefined,
+      ...payment, type: paymentType, amount: Number(amount),
+      receivedAmount: receivedAmount ? Number(receivedAmount) : 0,
+      status,
+      invoiceDate: invoiceDate || undefined,
+      dueDate: dueDate || undefined,
+      invoiceNumber: invoiceNumber || undefined,
+      followUpNotes: followUpNotes || undefined,
+      notes: notes || undefined,
+      documentUrl: documentUrl || undefined,
     });
     onOpenChange(false);
   };
