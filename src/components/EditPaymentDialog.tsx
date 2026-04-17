@@ -21,10 +21,14 @@ interface EditPaymentDialogProps {
 
 const EditPaymentDialog = ({ payment, open, onOpenChange, onSave }: EditPaymentDialogProps) => {
   const { t } = useLanguage();
-  const [paymentType, setPaymentType] = useState(payment.type);
+  const [paymentType, setPaymentType] = useState<PaymentType>(payment.type);
   const [amount, setAmount] = useState(String(payment.amount));
+  const [receivedAmount, setReceivedAmount] = useState(String(payment.receivedAmount ?? 0));
   const [status, setStatus] = useState<PaymentStatus>(payment.status);
   const [invoiceDate, setInvoiceDate] = useState(payment.invoiceDate || '');
+  const [dueDate, setDueDate] = useState(payment.dueDate || '');
+  const [invoiceNumber, setInvoiceNumber] = useState(payment.invoiceNumber || '');
+  const [followUpNotes, setFollowUpNotes] = useState(payment.followUpNotes || '');
   const [notes, setNotes] = useState(payment.notes || '');
   const [documentUrl, setDocumentUrl] = useState(payment.documentUrl || '');
   const [uploading, setUploading] = useState(false);
