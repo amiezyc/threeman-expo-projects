@@ -14,7 +14,10 @@ type FilterType = 'all' | 'active' | 'completed' | 'high_risk' | 'unreimbursed';
 
 const getProjectStatus = (project: Project): ProjectStatus => {
   const allPayments = project.booths.flatMap(b => b.payments);
-  const allReceived = allPayments.length > 0 && allPayments.every(p => p.status === 'received');
+  const allReceived = allPayments.length > 0 && allPayments.every(p => {
+    const rec = p.receivedAmount ?? (p.status === 'received' ? p.amount : 0);
+    return rec >= p.amount && p.amount > 0;
+  });
   if (allReceived && allPayments.length > 0) return 'settled';
   if (project.endDate && new Date(project.endDate) < new Date()) return 'completed';
   return 'active';
