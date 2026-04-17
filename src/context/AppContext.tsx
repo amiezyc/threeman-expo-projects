@@ -410,7 +410,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       daily_rate: workLog.dailyRate,
       rate_type: workLog.rateType || 'daily',
       hours: workLog.hours || null,
-    }).select().single();
+      payment_status: workLog.paymentStatus || 'unpaid',
+      paid_amount: workLog.paidAmount ?? 0,
+      paid_date: workLog.paidDate || null,
+      paid_by_user_id: workLog.paidByUserId || null,
+    } as any).select().single();
     if (error) { toast.error('保存失败'); return; }
     const newLog = { ...workLog, id: data.id };
     let project = projects.find(p => p.id === workLog.projectId);
@@ -428,7 +432,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       daily_rate: workLog.dailyRate,
       rate_type: workLog.rateType || 'daily',
       hours: workLog.hours || null,
-    }).eq('id', workLog.id);
+      payment_status: workLog.paymentStatus || 'unpaid',
+      paid_amount: workLog.paidAmount ?? 0,
+      paid_date: workLog.paidDate || null,
+      paid_by_user_id: workLog.paidByUserId || null,
+    } as any).eq('id', workLog.id);
     let project = projects.find(p => p.id === workLog.projectId);
     if (!project) return;
     project = { ...project, workLogs: project.workLogs.map(w => w.id === workLog.id ? workLog : w) };
